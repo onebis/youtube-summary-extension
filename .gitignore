@@ -1,0 +1,25 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Claude Code local settings (personal, not shared)
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / build (M1以降で発生)
+node_modules/
+dist/
+*.log
+.npm/
+.env
+.env.local
+
+# Vite
+.vite/
+
+# Chrome extension package
+*.zip
