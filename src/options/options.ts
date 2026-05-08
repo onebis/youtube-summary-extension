@@ -1,4 +1,13 @@
 import { loadSettings, saveSettings } from '../lib/storage';
+import type { Provider } from '../types';
+
+const PROVIDERS: Provider[] = ['claude', 'openai', 'gemini'];
+
+const DEFAULT_MODELS: Record<Provider, string> = {
+  claude: 'claude-sonnet-4-6',
+  openai: 'gpt-4o',
+  gemini: 'gemini-2.5-flash',
+};
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -6,26 +15,54 @@ const $ = <T extends HTMLElement>(id: string): T => {
   return el as T;
 };
 
+const updateActiveSection = (active: Provider): void => {
+  document
+    .querySelectorAll<HTMLDetailsElement>('.provider-section')
+    .forEach((d) => {
+      d.open = d.dataset.provider === active;
+    });
+};
+
 const init = async (): Promise<void> => {
   const settings = await loadSettings();
-  const keyInput = $<HTMLInputElement>('claude-key');
-  const modelInput = $<HTMLInputElement>('claude-model');
   const status = $<HTMLParagraphElement>('status');
 
-  keyInput.value = settings.providers.claude.apiKey;
-  modelInput.value = settings.providers.claude.model;
+  for (const p of PROVIDERS) {
+    $<HTMLInputElement>(`${p}-key`).value = settings.providers[p].apiKey;
+    $<HTMLInputElement>(`${p}-model`).value = settings.providers[p].model;
+  }
+
+  document
+    .querySelectorAll<HTMLInputElement>('input[name="provider"]')
+    .forEach((el) => {
+      el.checked = el.value === settings.activeProvider;
+      el.addEventListener('change', () => {
+        if (el.checked) updateActiveSection(el.value as Provider);
+      });
+    });
+
+  updateActiveSection(settings.activeProvider);
 
   $<HTMLFormElement>('form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const apiKey = keyInput.value.trim();
-    const model = modelInput.value.trim() || 'claude-sonnet-4-6';
 
-    await saveSettings({
-      providers: {
-        ...settings.providers,
-        claude: { apiKey, model },
+    const checked = document.querySelector<HTMLInputElement>(
+      'input[name="provider"]:checked',
+    );
+    const activeProvider = (checked?.value as Provider | undefined) ?? settings.activeProvider;
+
+    const providers = PROVIDERS.reduce(
+      (acc, p) => {
+        acc[p] = {
+          apiKey: $<HTMLInputElement>(`${p}-key`).value.trim(),
+          model: $<HTMLInputElement>(`${p}-model`).value.trim() || DEFAULT_MODELS[p],
+        };
+        return acc;
       },
-    });
+      {} as Record<Provider, { apiKey: string; model: string }>,
+    );
+
+    await saveSettings({ activeProvider, providers });
 
     status.textContent = '保存しました';
     status.className = 'success';

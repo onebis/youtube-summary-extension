@@ -10,7 +10,25 @@
     <h1>YouTube Summary - Options</h1>
     <form id="form">
       <fieldset>
-        <legend>Claude API</legend>
+        <legend>使用するプロバイダ</legend>
+        <div class="radio-row">
+          <label class="radio-label">
+            <input type="radio" name="provider" value="claude" />
+            <span>Claude</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="provider" value="openai" />
+            <span>OpenAI</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="provider" value="gemini" />
+            <span>Gemini</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <details class="provider-section" data-provider="claude">
+        <summary>Claude API</summary>
         <label>
           <span>API Key</span>
           <input
@@ -25,10 +43,48 @@
           <span>Model</span>
           <input type="text" id="claude-model" spellcheck="false" />
         </label>
-        <p class="hint">
-          API キーは Anthropic Console から発行できます。キーはこの拡張機能のローカルストレージにのみ保存され、外部に送信されません（要約実行時を除く）。
-        </p>
-      </fieldset>
+      </details>
+
+      <details class="provider-section" data-provider="openai">
+        <summary>OpenAI API</summary>
+        <label>
+          <span>API Key</span>
+          <input
+            type="password"
+            id="openai-key"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="sk-..."
+          />
+        </label>
+        <label>
+          <span>Model</span>
+          <input type="text" id="openai-model" spellcheck="false" />
+        </label>
+      </details>
+
+      <details class="provider-section" data-provider="gemini">
+        <summary>Gemini API</summary>
+        <label>
+          <span>API Key</span>
+          <input
+            type="password"
+            id="gemini-key"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="AIza..."
+          />
+        </label>
+        <label>
+          <span>Model</span>
+          <input type="text" id="gemini-model" spellcheck="false" />
+        </label>
+      </details>
+
+      <p class="hint">
+        APIキーはこの拡張機能のローカルストレージにのみ保存され、外部に送信されません（要約実行時を除く）。アクティブなプロバイダのキーのみが要約呼び出しに使用されます。
+      </p>
+
       <div class="actions">
         <button type="submit">保存</button>
         <p id="status" aria-live="polite"></p>

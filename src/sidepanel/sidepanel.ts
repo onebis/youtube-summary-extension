@@ -5,8 +5,14 @@ import type {
   SubtitleResult,
   SummaryResult,
 } from '../types/messages';
-import type { SummaryMode } from '../types';
+import type { SummaryMode, Provider } from '../types';
 import { loadSettings, saveSettings } from '../lib/storage';
+
+const PROVIDER_NAMES: Record<Provider, string> = {
+  claude: 'Claude',
+  openai: 'OpenAI',
+  gemini: 'Gemini',
+};
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -96,9 +102,14 @@ let isProcessing = false;
 let activeVideoId: string | null = null;
 let pendingNext: PendingRequest | null = null;
 let summaryMode: SummaryMode = 'short';
+let activeProvider: Provider = 'claude';
 
-const loadingLabelFor = (mode: SummaryMode): string =>
-  mode === 'detailed' ? 'Claude で詳細な要約を生成中...' : 'Claude で要約を生成中...';
+const loadingLabelFor = (mode: SummaryMode): string => {
+  const name = PROVIDER_NAMES[activeProvider];
+  return mode === 'detailed'
+    ? `${name} で詳細な要約を生成中...`
+    : `${name} で要約を生成中...`;
+};
 
 const summarize = async (
   subtitle: { text: string; languageCode: string; title: string },
@@ -217,8 +228,16 @@ const setupModeToggle = (): void => {
 const init = async (): Promise<void> => {
   const settings = await loadSettings();
   summaryMode = settings.summaryMode;
+  activeProvider = settings.activeProvider;
   updateModeButtons();
   setupModeToggle();
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes['activeProvider']) {
+      activeProvider = (changes['activeProvider'].newValue as Provider) ?? 'claude';
+    }
+  });
 
   const queryMsg: Message = { type: 'GET_PENDING_REQUEST' };
   const pending = (await chrome.runtime.sendMessage(queryMsg)) as PendingRequest | null;

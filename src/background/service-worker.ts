@@ -7,8 +7,7 @@ import type {
 import { loadSettings } from '../lib/storage';
 import { buildPrompt } from '../lib/prompt';
 import { LLMError } from '../lib/llm';
-import type { LLMClient } from '../lib/llm';
-import { ClaudeClient } from '../lib/llm/claude';
+import { getClient } from '../lib/llm/factory';
 
 let pending: PendingRequest | null = null;
 
@@ -260,17 +259,7 @@ const runSummarize = async (
     return { type: 'SUMMARY_ERROR', code: 'NO_API_KEY' };
   }
 
-  let client: LLMClient;
-  if (provider === 'claude') {
-    client = new ClaudeClient();
-  } else {
-    return {
-      type: 'SUMMARY_ERROR',
-      code: 'OTHER',
-      message: `Provider not yet implemented: ${provider}`,
-    };
-  }
-
+  const client = getClient(provider);
   const prompt = buildPrompt(subtitle, mode, title);
   try {
     const result = await client.summarize({
