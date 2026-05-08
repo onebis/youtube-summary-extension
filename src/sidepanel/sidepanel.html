@@ -7,8 +7,25 @@
     <link rel="stylesheet" href="./sidepanel.css" />
   </head>
   <body>
-    <h1>YouTube Summary</h1>
-    <p>Hello sidepanel</p>
+    <header>
+      <h1>YouTube Summary</h1>
+    </header>
+    <main>
+      <div id="empty-state">
+        <p>YouTube動画ページの「Summarize」ボタンを押してください。</p>
+      </div>
+      <div id="loading" hidden>
+        <p>字幕を取得中...</p>
+      </div>
+      <div id="error" hidden>
+        <p id="error-message"></p>
+      </div>
+      <article id="result" hidden>
+        <h2 id="result-title">取得した字幕</h2>
+        <p id="result-meta"></p>
+        <pre id="result-text"></pre>
+      </article>
+    </main>
     <script type="module" src="./sidepanel.ts"></script>
   </body>
 </html>
