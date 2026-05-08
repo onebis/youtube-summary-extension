@@ -5,14 +5,17 @@ import type {
   SubtitleResult,
   SummaryResult,
 } from '../types/messages';
-import type { SummaryMode, Provider } from '../types';
+import type { SummaryMode, Provider, StorageSchema } from '../types';
 import { loadSettings, saveSettings } from '../lib/storage';
+import { initI18n, t, applyTranslations } from '../lib/i18n';
 
 const PROVIDER_NAMES: Record<Provider, string> = {
   claude: 'Claude',
   openai: 'OpenAI',
   gemini: 'Gemini',
 };
+
+type OutputLang = 'ja' | 'en';
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -50,27 +53,29 @@ const showSummary = (markdown: string, languageCode: string, charCount: number):
   hideAllSections();
   const html = marked.parse(markdown, { async: false }) as string;
   $('summary-content').innerHTML = html;
-  $('result-meta').textContent =
-    `字幕言語: ${languageCode} / 字幕文字数: ${charCount.toLocaleString()}`;
+  $('result-meta').textContent = t('metaSubtitleInfo', {
+    lang: languageCode,
+    chars: charCount.toLocaleString(),
+  });
   $('result').hidden = false;
 };
 
-const subtitleErrorMessage = (
+const subtitleErrorKey = (
   code: 'NO_SUBTITLE' | 'FETCH_FAILED' | 'EXTRACT_FAILED' | 'VIDEO_CHANGED',
 ): string => {
   switch (code) {
     case 'NO_SUBTITLE':
-      return 'この動画には字幕がないため要約できません';
+      return 'errorNoSubtitle';
     case 'FETCH_FAILED':
-      return '字幕の取得に失敗しました';
+      return 'errorFetchFailed';
     case 'EXTRACT_FAILED':
-      return '字幕情報の解析に失敗しました';
+      return 'errorExtractFailed';
     case 'VIDEO_CHANGED':
-      return '動画が切り替わったため要約を中止しました。元の動画に戻ってもう一度お試しください';
+      return 'errorVideoChanged';
   }
 };
 
-const summaryErrorMessage = (
+const summaryErrorKey = (
   code:
     | 'NO_API_KEY'
     | 'INVALID_KEY'
@@ -81,17 +86,17 @@ const summaryErrorMessage = (
 ): string => {
   switch (code) {
     case 'NO_API_KEY':
-      return 'APIキーが未設定です。設定画面で登録してください';
+      return 'errorNoApiKey';
     case 'INVALID_KEY':
-      return 'APIキーが無効です。設定を確認してください';
+      return 'errorInvalidKey';
     case 'RATE_LIMIT':
-      return 'APIレート制限に達しました。少し待って再試行してください';
+      return 'errorRateLimit';
     case 'CONTEXT_OVERFLOW':
-      return '動画が長すぎるため要約できません';
+      return 'errorContextOverflow';
     case 'NETWORK':
-      return 'ネットワークエラーが発生しました';
+      return 'errorNetwork';
     case 'OTHER':
-      return '要約の生成に失敗しました';
+      return 'errorGeneric';
   }
 };
 
@@ -103,12 +108,13 @@ let activeVideoId: string | null = null;
 let pendingNext: PendingRequest | null = null;
 let summaryMode: SummaryMode = 'short';
 let activeProvider: Provider = 'claude';
+let outputLanguage: OutputLang = 'ja';
 
 const loadingLabelFor = (mode: SummaryMode): string => {
-  const name = PROVIDER_NAMES[activeProvider];
+  const provider = PROVIDER_NAMES[activeProvider];
   return mode === 'detailed'
-    ? `${name} で詳細な要約を生成中...`
-    : `${name} で要約を生成中...`;
+    ? t('loadingSummarizingDetailed', { provider })
+    : t('loadingSummarizing', { provider });
 };
 
 const summarize = async (
@@ -121,13 +127,14 @@ const summarize = async (
     subtitle: subtitle.text,
     mode: summaryMode,
     title: subtitle.title,
+    outputLanguage,
   };
   const result = (await chrome.runtime.sendMessage(msg)) as SummaryResult;
   if (activeVideoId !== videoId) return;
   if (result.type === 'SUMMARY_RESULT') {
     showSummary(result.markdown, subtitle.languageCode, subtitle.text.length);
   } else {
-    showError(summaryErrorMessage(result.code), result.message);
+    showError(t(summaryErrorKey(result.code)), result.message);
   }
 };
 
@@ -138,7 +145,7 @@ const processRequest = async (pending: PendingRequest): Promise<void> => {
     if (cachedSubtitle && cachedSubtitle.videoId === pending.videoId) {
       subtitle = cachedSubtitle;
     } else {
-      showLoading('字幕を取得中...');
+      showLoading(t('loadingFetchingSubtitle'));
       const subtitleMsg: Message = {
         type: 'EXTRACT_SUBTITLE',
         tabId: pending.tabId,
@@ -147,7 +154,7 @@ const processRequest = async (pending: PendingRequest): Promise<void> => {
       const result = (await chrome.runtime.sendMessage(subtitleMsg)) as SubtitleResult;
       if (activeVideoId !== pending.videoId) return;
       if (result.type === 'SUBTITLE_ERROR') {
-        showError(subtitleErrorMessage(result.code), result.message);
+        showError(t(subtitleErrorKey(result.code)), result.message);
         cachedSubtitle = null;
         return;
       }
@@ -167,7 +174,6 @@ const processRequest = async (pending: PendingRequest): Promise<void> => {
 };
 
 const handleRequest = async (pending: PendingRequest): Promise<void> => {
-  // Always update activeVideoId so any in-flight handler aborts UI updates
   activeVideoId = pending.videoId;
   if (isProcessing) {
     pendingNext = pending;
@@ -189,7 +195,7 @@ const handleRequest = async (pending: PendingRequest): Promise<void> => {
 
 const updateModeButtons = (): void => {
   document.querySelectorAll<HTMLButtonElement>('.mode-btn').forEach((btn) => {
-    const mode = btn.dataset.mode;
+    const mode = btn.dataset['mode'];
     const isActive = mode === summaryMode;
     btn.classList.toggle('active', isActive);
     btn.setAttribute('aria-checked', String(isActive));
@@ -212,10 +218,25 @@ const onModeChange = async (mode: SummaryMode): Promise<void> => {
   }
 };
 
+const onOutputLangChange = async (lang: OutputLang): Promise<void> => {
+  if (lang === outputLanguage) return;
+  outputLanguage = lang;
+  await saveSettings({ outputLanguage: lang });
+  if (isProcessing || !cachedSubtitle) return;
+  isProcessing = true;
+  try {
+    await summarize(cachedSubtitle, cachedSubtitle.videoId);
+  } catch (err) {
+    showError(err instanceof Error ? err.message : String(err));
+  } finally {
+    isProcessing = false;
+  }
+};
+
 const setupModeToggle = (): void => {
   document.querySelectorAll<HTMLButtonElement>('.mode-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const mode = btn.dataset.mode as SummaryMode | undefined;
+      const mode = btn.dataset['mode'] as SummaryMode | undefined;
       if (mode === 'short' || mode === 'detailed') {
         onModeChange(mode).catch((err: unknown) => {
           console.error('[sidepanel] onModeChange failed:', err);
@@ -225,17 +246,42 @@ const setupModeToggle = (): void => {
   });
 };
 
+const setupOutputLangSelect = (): void => {
+  const sel = $<HTMLSelectElement>('output-lang');
+  sel.value = outputLanguage;
+  sel.addEventListener('change', () => {
+    const lang = sel.value as OutputLang;
+    if (lang === 'ja' || lang === 'en') {
+      onOutputLangChange(lang).catch((err: unknown) => {
+        console.error('[sidepanel] onOutputLangChange failed:', err);
+      });
+    }
+  });
+};
+
 const init = async (): Promise<void> => {
   const settings = await loadSettings();
   summaryMode = settings.summaryMode;
   activeProvider = settings.activeProvider;
+  outputLanguage = settings.outputLanguage;
+  await initI18n(settings.uiLanguage);
+  applyTranslations();
   updateModeButtons();
   setupModeToggle();
+  setupOutputLangSelect();
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if (changes['activeProvider']) {
-      activeProvider = (changes['activeProvider'].newValue as Provider) ?? 'claude';
+      activeProvider =
+        (changes['activeProvider'].newValue as Provider | undefined) ?? 'claude';
+    }
+    if (changes['uiLanguage']) {
+      const newLang =
+        (changes['uiLanguage'].newValue as StorageSchema['uiLanguage'] | undefined) ?? 'auto';
+      initI18n(newLang)
+        .then(() => applyTranslations())
+        .catch((err: unknown) => console.error('[sidepanel] i18n reload failed:', err));
     }
   });
 

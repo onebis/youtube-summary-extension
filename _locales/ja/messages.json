@@ -1,8 +1,38 @@
 {
-  "extensionName": {
-    "message": "YouTube動画要約"
-  },
-  "extensionDescription": {
-    "message": "YouTube動画の字幕をAIで日本語/英語に要約します（Claude / OpenAI / Gemini対応、BYOK方式）"
-  }
+  "extensionName": { "message": "YouTube動画要約" },
+  "extensionDescription": { "message": "YouTube動画の字幕をAIで日本語/英語に要約します（Claude / OpenAI / Gemini対応、BYOK方式）" },
+  "summarizeButton": { "message": "Summarize" },
+  "appTitle": { "message": "YouTube動画要約" },
+  "modeShort": { "message": "短め" },
+  "modeDetailed": { "message": "詳細" },
+  "outputLangJa": { "message": "日本語" },
+  "outputLangEn": { "message": "English" },
+  "emptyState": { "message": "YouTube動画ページの「Summarize」ボタンを押してください。" },
+  "loadingFetchingSubtitle": { "message": "字幕を取得中..." },
+  "loadingSummarizing": { "message": "{provider} で要約を生成中..." },
+  "loadingSummarizingDetailed": { "message": "{provider} で詳細な要約を生成中..." },
+  "errorNoSubtitle": { "message": "この動画には字幕がないため要約できません" },
+  "errorFetchFailed": { "message": "字幕の取得に失敗しました" },
+  "errorExtractFailed": { "message": "字幕情報の解析に失敗しました" },
+  "errorVideoChanged": { "message": "動画が切り替わったため要約を中止しました。元の動画に戻ってもう一度お試しください" },
+  "errorNoApiKey": { "message": "APIキーが未設定です。設定画面で登録してください" },
+  "errorInvalidKey": { "message": "APIキーが無効です。設定を確認してください" },
+  "errorRateLimit": { "message": "APIレート制限に達しました。少し待って再試行してください" },
+  "errorContextOverflow": { "message": "動画が長すぎるため要約できません" },
+  "errorNetwork": { "message": "ネットワークエラーが発生しました" },
+  "errorGeneric": { "message": "要約の生成に失敗しました" },
+  "metaSubtitleInfo": { "message": "字幕言語: {lang} / 字幕文字数: {chars}" },
+  "optionsTitle": { "message": "YouTube動画要約 - 設定" },
+  "providerSelectLegend": { "message": "使用するプロバイダ" },
+  "languageSettingsLegend": { "message": "言語設定" },
+  "uiLanguageLabel": { "message": "UI言語" },
+  "outputLanguageLabel": { "message": "要約出力言語のデフォルト" },
+  "langAuto": { "message": "自動（ブラウザの言語）" },
+  "langJa": { "message": "日本語" },
+  "langEn": { "message": "English" },
+  "apiKeyLabel": { "message": "API Key" },
+  "modelLabel": { "message": "Model" },
+  "apiKeyHint": { "message": "APIキーはこの拡張機能のローカルストレージにのみ保存され、外部に送信されません（要約実行時を除く）。アクティブなプロバイダのキーのみが要約呼び出しに使用されます。" },
+  "saveButton": { "message": "保存" },
+  "savedMessage": { "message": "保存しました" }
 }

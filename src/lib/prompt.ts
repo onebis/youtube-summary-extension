@@ -1,6 +1,8 @@
 import type { SummaryMode } from '../types';
 
-const buildShort = (title: string, subtitle: string): string =>
+export type OutputLang = 'ja' | 'en';
+
+const buildShortJa = (title: string, subtitle: string): string =>
   `あなたはYouTube動画を簡潔に要約する専門家です。以下の動画字幕を読み、指定されたMarkdownフォーマットで日本語要約を作成してください。
 
 【動画タイトル】
@@ -45,7 +47,7 @@ ${subtitle}
 
 上記フォーマットに従い、日本語で要約を生成してください。1行目は必ず「# ${title}」をそのまま記載すること。各文の末尾の句点の後には必ず空行を入れ、1文ずつ段落として記述すること。`;
 
-const buildDetailed = (title: string, subtitle: string): string =>
+const buildDetailedJa = (title: string, subtitle: string): string =>
   `あなたは動画コンテンツを深く分析する専門家です。以下のYouTube動画の字幕を読み、視聴者が動画を見なくても本質を完全に理解できる充実した日本語要約を作成してください。
 
 【動画タイトル】
@@ -94,13 +96,113 @@ ${subtitle}
 
 上記フォーマットに従い、日本語で要約を生成してください。1行目は必ず「# ${title}」をそのまま記載すること。セクション数は動画の構成に応じて4個前後で柔軟に調整してよい。各文の末尾の句点の後には必ず空行を入れ、1文ずつ段落として記述すること。`;
 
+const buildShortEn = (title: string, subtitle: string): string =>
+  `You are an expert YouTube video summarizer. Read the following video subtitle and create a concise English summary in the specified Markdown format.
+
+[Video Title]
+${title}
+
+[Guidelines]
+- Subtitles contain [mm:ss] timestamps. Reference these to indicate topic start times.
+- Stay faithful to the subtitle. Avoid speculation or fabrication.
+- Total length should be 500-1000 characters.
+- **After each sentence-ending period, insert a blank line so that each sentence is its own paragraph** (for readability).
+- Strictly follow the format below ([X], (X), and descriptive text should be replaced with actual content).
+- Keep the section emojis (🏷️ 📋 🎯 💡 ⏱) as-is.
+- Format categories and timestamps as \`#tag\` (wrapped in backticks).
+
+[Output Format]
+
+# ${title}
+
+## 🏷️ Category
+\`#MainCategory\` \`#SubCategory\` \`#Tag\`
+
+## 📋 Summary
+
+> (Conclusion in 2-3 sentences as a blockquote. Prefix each sentence line with "> " and separate sentences with a ">" only line.)
+
+## 🎯 Main Topics
+
+### 1. [Topic 1] \`⏱ 00:00〜\`
+Key points in 2-3 sentences
+
+### 2. [Topic 2] \`⏱ 00:00〜\`
+Key points in 2-3 sentences
+
+### 3. [Topic 3] \`⏱ 00:00〜\`
+Key points in 2-3 sentences
+
+## 💡 Conclusion
+(Overall message and implications in 3-4 sentences)
+
+[Subtitle]
+${subtitle}
+
+Follow the format above and generate the summary in English. The first line must be \`# ${title}\` exactly. Categories should be 1-3 hashtags. Insert a blank line after each sentence's period to separate sentences as paragraphs.`;
+
+const buildDetailedEn = (title: string, subtitle: string): string =>
+  `You are an expert content analyst. Read the following YouTube video subtitle and create a comprehensive English summary that allows viewers to fully grasp the content without watching the video.
+
+[Video Title]
+${title}
+
+[Guidelines]
+- Subtitles contain [mm:ss] timestamps. Reference these to indicate the start/end time of each section.
+- Include as many specific facts, numbers, proper nouns, and quotes from the subtitle as possible.
+- Stay faithful to the subtitle. Do not add facts that aren't in the source.
+- Total length should be 1500-3000 characters.
+- **After each sentence-ending period, insert a blank line so that each sentence is its own paragraph** (for readability).
+- Strictly follow the format below ([X], (X), and descriptive text should be replaced with actual content).
+- Keep the section emojis (🏷️ 📝 📚 💡 ⏱) as-is.
+- Format categories and timestamps as \`#tag\` (wrapped in backticks).
+
+[Output Format]
+
+# ${title}
+
+## 🏷️ Category
+\`#MainCategory\` \`#SubCategory\` \`#Tag\`
+
+## 📝 TL;DR
+
+> (Overall thesis in 3-4 sentences as a blockquote. Prefix each sentence with "> " and separate with ">" only lines.)
+
+## 📚 Section Summaries
+
+### 1. [Section 1 Title] \`⏱ 00:00〜00:00\`
+(Detailed explanation of the section)
+
+### 2. [Section 2 Title] \`⏱ 00:00〜00:00\`
+(Same structure)
+
+### 3. [Section 3 Title] \`⏱ 00:00〜00:00\`
+(Same structure)
+
+### 4. [Section 4 Title] \`⏱ 00:00〜00:00\`
+(Same structure)
+
+## 💡 Conclusion & Implications
+(Overall conclusion of the video)
+
+[Subtitle]
+${subtitle}
+
+Follow the format above and generate the summary in English. The first line must be \`# ${title}\` exactly. Adjust the number of sections (around 4) to match the video structure. Insert a blank line after each sentence's period to separate sentences as paragraphs.`;
+
 export const buildPrompt = (
   subtitle: string,
   mode: SummaryMode,
   title: string,
+  outputLang: OutputLang = 'ja',
 ): string => {
-  const titleSafe = title.trim() || '無題';
+  const titleSafe = title.trim() || (outputLang === 'en' ? 'Untitled' : '無題');
+  if (outputLang === 'en') {
+    return mode === 'detailed'
+      ? buildDetailedEn(titleSafe, subtitle)
+      : buildShortEn(titleSafe, subtitle);
+  }
   return mode === 'detailed'
-    ? buildDetailed(titleSafe, subtitle)
-    : buildShort(titleSafe, subtitle);
+    ? buildDetailedJa(titleSafe, subtitle)
+    : buildShortJa(titleSafe, subtitle);
 };

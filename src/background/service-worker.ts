@@ -250,6 +250,7 @@ const runSummarize = async (
   subtitle: string,
   mode: 'short' | 'detailed',
   title: string,
+  outputLanguage: 'ja' | 'en',
 ): Promise<SummaryResult> => {
   const settings = await loadSettings();
   const provider = settings.activeProvider;
@@ -260,7 +261,7 @@ const runSummarize = async (
   }
 
   const client = getClient(provider);
-  const prompt = buildPrompt(subtitle, mode, title);
+  const prompt = buildPrompt(subtitle, mode, title, outputLanguage);
   try {
     const result = await client.summarize({
       prompt,
@@ -368,7 +369,7 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
   }
 
   if (msg.type === 'SUMMARIZE') {
-    runSummarize(msg.subtitle, msg.mode, msg.title)
+    runSummarize(msg.subtitle, msg.mode, msg.title, msg.outputLanguage)
       .then((result) => sendResponse(result))
       .catch((err: unknown) => {
         sendResponse({

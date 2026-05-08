@@ -27,4 +27,10 @@ export type Message =
   | { type: 'GET_PENDING_REQUEST' }
   | { type: 'NEW_REQUEST'; pending: PendingRequest }
   | { type: 'EXTRACT_SUBTITLE'; tabId: number; expectedVideoId: string }
-  | { type: 'SUMMARIZE'; subtitle: string; mode: SummaryMode; title: string };
+  | {
+      type: 'SUMMARIZE';
+      subtitle: string;
+      mode: SummaryMode;
+      title: string;
+      outputLanguage: 'ja' | 'en';
+    };

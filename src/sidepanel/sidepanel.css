@@ -31,6 +31,28 @@ header h1 {
   font-weight: 600;
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lang-select {
+  border: 1px solid #d5d5d5;
+  border-radius: 16px;
+  padding: 4px 10px;
+  font: 500 12px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background-color: #ffffff;
+  color: #0f0f0f;
+  cursor: pointer;
+  height: 28px;
+}
+
+.lang-select:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 1px;
+}
+
 .mode-toggle {
   display: inline-flex;
   background-color: #f0f0f0;
@@ -300,6 +322,11 @@ main {
   }
   .mode-toggle {
     background-color: #1a1a1a;
+  }
+  .lang-select {
+    background-color: #1a1a1a;
+    border-color: #303030;
+    color: #f1f1f1;
   }
   .mode-btn {
     color: #a0a0a0;

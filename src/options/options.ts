@@ -1,5 +1,6 @@
 import { loadSettings, saveSettings } from '../lib/storage';
-import type { Provider } from '../types';
+import { initI18n, t, applyTranslations } from '../lib/i18n';
+import type { Provider, StorageSchema } from '../types';
 
 const PROVIDERS: Provider[] = ['claude', 'openai', 'gemini'];
 
@@ -19,13 +20,16 @@ const updateActiveSection = (active: Provider): void => {
   document
     .querySelectorAll<HTMLDetailsElement>('.provider-section')
     .forEach((d) => {
-      d.open = d.dataset.provider === active;
+      d.open = d.dataset['provider'] === active;
     });
 };
 
 const init = async (): Promise<void> => {
   const settings = await loadSettings();
   const status = $<HTMLParagraphElement>('status');
+
+  await initI18n(settings.uiLanguage);
+  applyTranslations();
 
   for (const p of PROVIDERS) {
     $<HTMLInputElement>(`${p}-key`).value = settings.providers[p].apiKey;
@@ -43,13 +47,17 @@ const init = async (): Promise<void> => {
 
   updateActiveSection(settings.activeProvider);
 
+  $<HTMLSelectElement>('ui-language').value = settings.uiLanguage;
+  $<HTMLSelectElement>('output-language').value = settings.outputLanguage;
+
   $<HTMLFormElement>('form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const checked = document.querySelector<HTMLInputElement>(
       'input[name="provider"]:checked',
     );
-    const activeProvider = (checked?.value as Provider | undefined) ?? settings.activeProvider;
+    const activeProvider =
+      (checked?.value as Provider | undefined) ?? settings.activeProvider;
 
     const providers = PROVIDERS.reduce(
       (acc, p) => {
@@ -62,9 +70,23 @@ const init = async (): Promise<void> => {
       {} as Record<Provider, { apiKey: string; model: string }>,
     );
 
-    await saveSettings({ activeProvider, providers });
+    const uiLanguage = $<HTMLSelectElement>('ui-language')
+      .value as StorageSchema['uiLanguage'];
+    const outputLanguage = $<HTMLSelectElement>('output-language')
+      .value as StorageSchema['outputLanguage'];
 
-    status.textContent = '保存しました';
+    await saveSettings({
+      activeProvider,
+      providers,
+      uiLanguage,
+      outputLanguage,
+    });
+
+    // Reload i18n in case UI language changed
+    await initI18n(uiLanguage);
+    applyTranslations();
+
+    status.textContent = t('savedMessage');
     status.className = 'success';
     setTimeout(() => {
       status.textContent = '';

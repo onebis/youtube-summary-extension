@@ -38,6 +38,12 @@
     }
   ],
   "permissions": ["storage", "activeTab", "scripting", "sidePanel"],
+  "web_accessible_resources": [
+    {
+      "resources": ["_locales/*"],
+      "matches": ["https://www.youtube.com/*"]
+    }
+  ],
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://api.anthropic.com/*",

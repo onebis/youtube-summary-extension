@@ -1,8 +1,38 @@
 {
-  "extensionName": {
-    "message": "YouTube Summary"
-  },
-  "extensionDescription": {
-    "message": "Summarize YouTube videos with your own AI key (Claude / OpenAI / Gemini). Output in Japanese or English."
-  }
+  "extensionName": { "message": "YouTube Summary" },
+  "extensionDescription": { "message": "Summarize YouTube videos with your own AI key (Claude / OpenAI / Gemini). Output in Japanese or English." },
+  "summarizeButton": { "message": "Summarize" },
+  "appTitle": { "message": "YouTube Summary" },
+  "modeShort": { "message": "Short" },
+  "modeDetailed": { "message": "Detailed" },
+  "outputLangJa": { "message": "Japanese" },
+  "outputLangEn": { "message": "English" },
+  "emptyState": { "message": "Click the Summarize button on a YouTube video page." },
+  "loadingFetchingSubtitle": { "message": "Fetching subtitle..." },
+  "loadingSummarizing": { "message": "{provider} is generating summary..." },
+  "loadingSummarizingDetailed": { "message": "{provider} is generating detailed summary..." },
+  "errorNoSubtitle": { "message": "This video has no subtitle to summarize." },
+  "errorFetchFailed": { "message": "Failed to fetch subtitle." },
+  "errorExtractFailed": { "message": "Failed to parse subtitle data." },
+  "errorVideoChanged": { "message": "Video changed during processing. Go back to the original video and try again." },
+  "errorNoApiKey": { "message": "API key is not set. Please configure in Settings." },
+  "errorInvalidKey": { "message": "Invalid API key. Please check your settings." },
+  "errorRateLimit": { "message": "Rate limit reached. Please retry later." },
+  "errorContextOverflow": { "message": "Video is too long to summarize." },
+  "errorNetwork": { "message": "A network error occurred." },
+  "errorGeneric": { "message": "Failed to generate summary." },
+  "metaSubtitleInfo": { "message": "Subtitle: {lang} / {chars} chars" },
+  "optionsTitle": { "message": "YouTube Summary - Options" },
+  "providerSelectLegend": { "message": "AI Provider" },
+  "languageSettingsLegend": { "message": "Language" },
+  "uiLanguageLabel": { "message": "UI Language" },
+  "outputLanguageLabel": { "message": "Default Output Language" },
+  "langAuto": { "message": "Auto (browser locale)" },
+  "langJa": { "message": "日本語" },
+  "langEn": { "message": "English" },
+  "apiKeyLabel": { "message": "API Key" },
+  "modelLabel": { "message": "Model" },
+  "apiKeyHint": { "message": "API keys are stored only in this extension's local storage and never sent externally (except during summary execution). Only the active provider's key is used for summary calls." },
+  "saveButton": { "message": "Save" },
+  "savedMessage": { "message": "Saved" }
 }

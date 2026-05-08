@@ -1,4 +1,7 @@
 import type { Message } from '../types/messages';
+import type { StorageSchema } from '../types';
+import { initI18n, t } from '../lib/i18n';
+import { loadSettings } from '../lib/storage';
 
 const SELECTORS = [
   '#actions-inner #menu #top-level-buttons-computed',
@@ -30,8 +33,9 @@ const buildButton = (): HTMLButtonElement => {
   btn.id = BUTTON_ID;
   btn.type = 'button';
   btn.className = 'yt-summary-button';
-  btn.setAttribute('aria-label', 'Summarize');
-  btn.textContent = 'Summarize';
+  const label = t('summarizeButton') || 'Summarize';
+  btn.setAttribute('aria-label', label);
+  btn.textContent = label;
   btn.addEventListener('click', onSummarizeClick);
   return btn;
 };
@@ -44,7 +48,18 @@ const insert = (): void => {
   container.appendChild(buildButton());
 };
 
-export const mountActionButton = (): void => {
+const refreshLabel = (): void => {
+  const btn = document.querySelector<HTMLButtonElement>(`#${BUTTON_ID}`);
+  if (!btn) return;
+  const label = t('summarizeButton') || 'Summarize';
+  btn.textContent = label;
+  btn.setAttribute('aria-label', label);
+};
+
+export const mountActionButton = async (): Promise<void> => {
+  const settings = await loadSettings();
+  await initI18n(settings.uiLanguage);
+
   insert();
 
   let scheduled = false;
@@ -62,5 +77,16 @@ export const mountActionButton = (): void => {
 
   document.addEventListener('yt-navigate-finish', () => {
     setTimeout(insert, 300);
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes['uiLanguage']) {
+      const newLang =
+        (changes['uiLanguage'].newValue as StorageSchema['uiLanguage'] | undefined) ?? 'auto';
+      initI18n(newLang)
+        .then(() => refreshLabel())
+        .catch((err: unknown) => console.error('[content] i18n reload failed:', err));
+    }
   });
 };
