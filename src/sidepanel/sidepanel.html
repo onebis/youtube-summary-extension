@@ -10,6 +10,26 @@
     <header>
       <h1 data-i18n="appTitle">YouTube Summary</h1>
       <div class="header-controls">
+        <button
+          type="button"
+          id="copy-btn"
+          class="header-btn"
+          disabled
+          aria-label="Copy"
+        >
+          <span aria-hidden="true">📋</span>
+          <span data-i18n="copyButton">コピー</span>
+        </button>
+        <button
+          type="button"
+          id="regenerate-btn"
+          class="header-btn"
+          disabled
+          aria-label="Regenerate"
+        >
+          <span aria-hidden="true">🔄</span>
+          <span data-i18n="regenerateButton">再生成</span>
+        </button>
         <select id="output-lang" class="lang-select" aria-label="Output language">
           <option value="ja" data-i18n="outputLangJa">日本語</option>
           <option value="en" data-i18n="outputLangEn">English</option>
@@ -38,6 +58,12 @@
         </div>
       </div>
     </header>
+    <div id="video-changed-banner" class="banner" hidden>
+      <span data-i18n="videoNavigatedBanner">別の動画が表示されています</span>
+      <button type="button" id="summarize-new-btn" class="banner-btn" data-i18n="summarizeNewVideoButton">
+        この動画を要約
+      </button>
+    </div>
     <main>
       <div id="empty-state">
         <p data-i18n="emptyState">
@@ -45,18 +71,35 @@
         </p>
       </div>
       <div id="loading" hidden>
-        <div class="spinner" aria-hidden="true"></div>
-        <p id="loading-message">処理中...</p>
+        <div class="skeleton skeleton-line" style="width: 90%"></div>
+        <div class="skeleton skeleton-line" style="width: 70%"></div>
+        <div class="skeleton skeleton-line" style="width: 80%"></div>
+        <div class="skeleton skeleton-line" style="width: 60%"></div>
+        <p id="loading-message" class="loading-message">処理中...</p>
+        <button type="button" id="cancel-btn" class="action-btn cancel-btn">
+          <span aria-hidden="true">✕</span>
+          <span data-i18n="cancelButton">中止</span>
+        </button>
       </div>
       <div id="error" hidden>
         <p id="error-message"></p>
         <p id="error-detail" class="error-detail" hidden></p>
+        <button
+          type="button"
+          id="open-options-btn"
+          class="action-btn primary"
+          data-i18n="openOptionsButton"
+          hidden
+        >
+          設定を開く
+        </button>
       </div>
       <article id="result" hidden>
         <p id="result-meta"></p>
         <div id="summary-content" class="markdown-body"></div>
       </article>
     </main>
+    <div id="toast" class="toast" hidden></div>
     <script type="module" src="./sidepanel.ts"></script>
   </body>
 </html>

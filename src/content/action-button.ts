@@ -75,8 +75,24 @@ export const mountActionButton = async (): Promise<void> => {
   const observer = new MutationObserver(scheduleInsert);
   observer.observe(document.body, { childList: true, subtree: true });
 
+  let lastNotifiedVideoId: string | null = null;
+  const notifyNavigation = (): void => {
+    if (location.pathname !== '/watch') return;
+    const videoId = new URLSearchParams(location.search).get('v');
+    if (!videoId || videoId === lastNotifiedVideoId) return;
+    lastNotifiedVideoId = videoId;
+    const navMsg: Message = { type: 'VIDEO_NAVIGATED', videoId };
+    chrome.runtime.sendMessage(navMsg).catch(() => {
+      // No receivers (sidepanel not open) — fine
+    });
+  };
+  notifyNavigation();
+
   document.addEventListener('yt-navigate-finish', () => {
-    setTimeout(insert, 300);
+    setTimeout(() => {
+      insert();
+      notifyNavigation();
+    }, 300);
   });
 
   chrome.storage.onChanged.addListener((changes, area) => {

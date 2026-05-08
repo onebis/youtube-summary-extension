@@ -6,7 +6,7 @@ type ClaudeMessageResponse = {
 };
 
 export class ClaudeClient implements LLMClient {
-  async summarize({ prompt, apiKey, model }: LLMRequest): Promise<LLMResponse> {
+  async summarize({ prompt, apiKey, model, signal }: LLMRequest): Promise<LLMResponse> {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -20,6 +20,7 @@ export class ClaudeClient implements LLMClient {
         max_tokens: 8192,
         messages: [{ role: 'user', content: prompt }],
       }),
+      signal,
     });
 
     if (!res.ok) {

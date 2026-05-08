@@ -6,7 +6,7 @@ type OpenAIChatResponse = {
 };
 
 export class OpenAIClient implements LLMClient {
-  async summarize({ prompt, apiKey, model }: LLMRequest): Promise<LLMResponse> {
+  async summarize({ prompt, apiKey, model, signal }: LLMRequest): Promise<LLMResponse> {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -18,6 +18,7 @@ export class OpenAIClient implements LLMClient {
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 8192,
       }),
+      signal,
     });
 
     if (!res.ok) {

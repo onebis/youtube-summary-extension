@@ -19,6 +19,7 @@
   "errorInvalidKey": { "message": "APIキーが無効です。設定を確認してください" },
   "errorRateLimit": { "message": "APIレート制限に達しました。少し待って再試行してください" },
   "errorContextOverflow": { "message": "動画が長すぎるため要約できません" },
+  "errorOverloaded": { "message": "AIサーバーが混雑しています（自動再試行も失敗）。しばらく待ってから「再生成」をお試しください" },
   "errorNetwork": { "message": "ネットワークエラーが発生しました" },
   "errorGeneric": { "message": "要約の生成に失敗しました" },
   "metaSubtitleInfo": { "message": "字幕言語: {lang} / 字幕文字数: {chars}" },
@@ -34,5 +35,13 @@
   "modelLabel": { "message": "Model" },
   "apiKeyHint": { "message": "APIキーはこの拡張機能のローカルストレージにのみ保存され、外部に送信されません（要約実行時を除く）。アクティブなプロバイダのキーのみが要約呼び出しに使用されます。" },
   "saveButton": { "message": "保存" },
-  "savedMessage": { "message": "保存しました" }
+  "savedMessage": { "message": "保存しました" },
+  "copyButton": { "message": "コピー" },
+  "regenerateButton": { "message": "再生成" },
+  "cancelButton": { "message": "中止" },
+  "copiedToast": { "message": "コピーしました" },
+  "copyFailedToast": { "message": "コピーに失敗しました" },
+  "openOptionsButton": { "message": "設定を開く" },
+  "videoNavigatedBanner": { "message": "別の動画が表示されています" },
+  "summarizeNewVideoButton": { "message": "この動画を要約" }
 }

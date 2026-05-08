@@ -16,7 +16,15 @@ export type SummaryResult =
   | { type: 'SUMMARY_RESULT'; markdown: string }
   | {
       type: 'SUMMARY_ERROR';
-      code: 'NO_API_KEY' | 'INVALID_KEY' | 'RATE_LIMIT' | 'CONTEXT_OVERFLOW' | 'NETWORK' | 'OTHER';
+      code:
+        | 'NO_API_KEY'
+        | 'INVALID_KEY'
+        | 'RATE_LIMIT'
+        | 'CONTEXT_OVERFLOW'
+        | 'OVERLOADED'
+        | 'CANCELLED'
+        | 'NETWORK'
+        | 'OTHER';
       message?: string;
     };
 
@@ -33,4 +41,6 @@ export type Message =
       mode: SummaryMode;
       title: string;
       outputLanguage: 'ja' | 'en';
-    };
+    }
+  | { type: 'VIDEO_NAVIGATED'; videoId: string }
+  | { type: 'CANCEL_SUMMARIZE' };

@@ -10,6 +10,7 @@ import { LLMError } from '../lib/llm';
 import { getClient } from '../lib/llm/factory';
 
 let pending: PendingRequest | null = null;
+let activeSummarizeController: AbortController | null = null;
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('[bg] installed');
@@ -262,30 +263,78 @@ const runSummarize = async (
 
   const client = getClient(provider);
   const prompt = buildPrompt(subtitle, mode, title, outputLanguage);
+
+  // Abort any previous in-flight summarize and create a fresh controller
+  if (activeSummarizeController) {
+    activeSummarizeController.abort();
+  }
+  const controller = new AbortController();
+  activeSummarizeController = controller;
+
+  const MAX_ATTEMPTS = 3;
+  let lastErr: unknown = null;
+
   try {
-    const result = await client.summarize({
-      prompt,
-      apiKey: cred.apiKey,
-      model: cred.model,
-    });
-    if (!result.text) {
-      return { type: 'SUMMARY_ERROR', code: 'OTHER', message: 'Empty response from LLM' };
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      if (controller.signal.aborted) {
+        return { type: 'SUMMARY_ERROR', code: 'CANCELLED', message: 'Cancelled by user' };
+      }
+      try {
+        const result = await client.summarize({
+          prompt,
+          apiKey: cred.apiKey,
+          model: cred.model,
+          signal: controller.signal,
+        });
+        if (!result.text) {
+          return { type: 'SUMMARY_ERROR', code: 'OTHER', message: 'Empty response from LLM' };
+        }
+        return { type: 'SUMMARY_RESULT', markdown: result.text };
+      } catch (err) {
+        lastErr = err;
+        if (controller.signal.aborted) {
+          return { type: 'SUMMARY_ERROR', code: 'CANCELLED', message: 'Cancelled by user' };
+        }
+        if (err instanceof LLMError && err.isTransient() && attempt < MAX_ATTEMPTS) {
+          const delayMs = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s...
+          console.warn(
+            `[bg] LLM transient error (HTTP ${err.status}), retrying in ${delayMs}ms (attempt ${attempt}/${MAX_ATTEMPTS})`,
+          );
+          // Sleep but bail if aborted during sleep
+          await new Promise<void>((resolve) => {
+            const timer = setTimeout(resolve, delayMs);
+            controller.signal.addEventListener(
+              'abort',
+              () => {
+                clearTimeout(timer);
+                resolve();
+              },
+              { once: true },
+            );
+          });
+          continue;
+        }
+        break;
+      }
     }
-    return { type: 'SUMMARY_RESULT', markdown: result.text };
-  } catch (err) {
-    if (err instanceof LLMError) {
-      return {
-        type: 'SUMMARY_ERROR',
-        code: err.toUserCode(),
-        message: `HTTP ${err.status}: ${err.body.slice(0, 200)}`,
-      };
+  } finally {
+    if (activeSummarizeController === controller) {
+      activeSummarizeController = null;
     }
+  }
+
+  if (lastErr instanceof LLMError) {
     return {
       type: 'SUMMARY_ERROR',
-      code: 'NETWORK',
-      message: err instanceof Error ? err.message : String(err),
+      code: lastErr.toUserCode(),
+      message: `HTTP ${lastErr.status}: ${lastErr.body.slice(0, 200)}`,
     };
   }
+  return {
+    type: 'SUMMARY_ERROR',
+    code: 'NETWORK',
+    message: lastErr instanceof Error ? lastErr.message : String(lastErr),
+  };
 };
 
 const runExtraction = async (
@@ -379,6 +428,15 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
         } satisfies SummaryResult);
       });
     return true;
+  }
+
+  if (msg.type === 'CANCEL_SUMMARIZE') {
+    if (activeSummarizeController) {
+      activeSummarizeController.abort();
+      activeSummarizeController = null;
+    }
+    sendResponse({ ok: true });
+    return false;
   }
 
   return false;

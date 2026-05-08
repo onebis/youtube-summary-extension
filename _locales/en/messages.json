@@ -19,6 +19,7 @@
   "errorInvalidKey": { "message": "Invalid API key. Please check your settings." },
   "errorRateLimit": { "message": "Rate limit reached. Please retry later." },
   "errorContextOverflow": { "message": "Video is too long to summarize." },
+  "errorOverloaded": { "message": "AI server is overloaded (auto-retry also failed). Please wait a moment and try Regenerate." },
   "errorNetwork": { "message": "A network error occurred." },
   "errorGeneric": { "message": "Failed to generate summary." },
   "metaSubtitleInfo": { "message": "Subtitle: {lang} / {chars} chars" },
@@ -34,5 +35,13 @@
   "modelLabel": { "message": "Model" },
   "apiKeyHint": { "message": "API keys are stored only in this extension's local storage and never sent externally (except during summary execution). Only the active provider's key is used for summary calls." },
   "saveButton": { "message": "Save" },
-  "savedMessage": { "message": "Saved" }
+  "savedMessage": { "message": "Saved" },
+  "copyButton": { "message": "Copy" },
+  "regenerateButton": { "message": "Regenerate" },
+  "cancelButton": { "message": "Cancel" },
+  "copiedToast": { "message": "Copied to clipboard" },
+  "copyFailedToast": { "message": "Failed to copy" },
+  "openOptionsButton": { "message": "Open Settings" },
+  "videoNavigatedBanner": { "message": "A different video is now active." },
+  "summarizeNewVideoButton": { "message": "Summarize this video" }
 }

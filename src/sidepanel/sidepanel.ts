@@ -34,9 +34,14 @@ const showLoading = (message: string): void => {
   hideAllSections();
   $('loading-message').textContent = message;
   $('loading').hidden = false;
+  updateActionButtonStates();
 };
 
-const showError = (message: string, detail?: string): void => {
+const showError = (
+  message: string,
+  detail?: string,
+  options?: { showOpenOptions?: boolean },
+): void => {
   hideAllSections();
   $('error-message').textContent = message;
   const detailEl = $('error-detail');
@@ -46,11 +51,16 @@ const showError = (message: string, detail?: string): void => {
   } else {
     detailEl.hidden = true;
   }
+  $('open-options-btn').hidden = !options?.showOpenOptions;
   $('error').hidden = false;
+  updateActionButtonStates();
 };
+
+let currentSummaryMarkdown: string | null = null;
 
 const showSummary = (markdown: string, languageCode: string, charCount: number): void => {
   hideAllSections();
+  currentSummaryMarkdown = markdown;
   const html = marked.parse(markdown, { async: false }) as string;
   $('summary-content').innerHTML = html;
   $('result-meta').textContent = t('metaSubtitleInfo', {
@@ -58,6 +68,20 @@ const showSummary = (markdown: string, languageCode: string, charCount: number):
     chars: charCount.toLocaleString(),
   });
   $('result').hidden = false;
+  updateActionButtonStates();
+};
+
+let toastTimer: number | null = null;
+const showToast = (message: string): void => {
+  const toast = $('toast');
+  toast.textContent = message;
+  toast.hidden = false;
+  toast.classList.add('toast-show');
+  if (toastTimer != null) clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    toast.classList.remove('toast-show');
+    toast.hidden = true;
+  }, 2000);
 };
 
 const subtitleErrorKey = (
@@ -81,6 +105,8 @@ const summaryErrorKey = (
     | 'INVALID_KEY'
     | 'RATE_LIMIT'
     | 'CONTEXT_OVERFLOW'
+    | 'OVERLOADED'
+    | 'CANCELLED'
     | 'NETWORK'
     | 'OTHER',
 ): string => {
@@ -93,6 +119,10 @@ const summaryErrorKey = (
       return 'errorRateLimit';
     case 'CONTEXT_OVERFLOW':
       return 'errorContextOverflow';
+    case 'OVERLOADED':
+      return 'errorOverloaded';
+    case 'CANCELLED':
+      return '';
     case 'NETWORK':
       return 'errorNetwork';
     case 'OTHER':
@@ -109,6 +139,30 @@ let pendingNext: PendingRequest | null = null;
 let summaryMode: SummaryMode = 'short';
 let activeProvider: Provider = 'claude';
 let outputLanguage: OutputLang = 'ja';
+let pendingNewVideo: { videoId: string; tabId: number } | null = null;
+let cancelRequested = false;
+
+const updateActionButtonStates = (): void => {
+  const resultShown = !$('result').hidden;
+  $<HTMLButtonElement>('copy-btn').disabled =
+    !resultShown || currentSummaryMarkdown === null;
+  $<HTMLButtonElement>('regenerate-btn').disabled =
+    cachedSubtitle === null || isProcessing;
+};
+
+const restoreUiAfterCancel = (): void => {
+  if (currentSummaryMarkdown && cachedSubtitle) {
+    showSummary(
+      currentSummaryMarkdown,
+      cachedSubtitle.languageCode,
+      cachedSubtitle.text.length,
+    );
+  } else {
+    hideAllSections();
+    $('empty-state').hidden = false;
+  }
+  updateActionButtonStates();
+};
 
 const loadingLabelFor = (mode: SummaryMode): string => {
   const provider = PROVIDER_NAMES[activeProvider];
@@ -131,15 +185,25 @@ const summarize = async (
   };
   const result = (await chrome.runtime.sendMessage(msg)) as SummaryResult;
   if (activeVideoId !== videoId) return;
+  if (cancelRequested) return;
   if (result.type === 'SUMMARY_RESULT') {
     showSummary(result.markdown, subtitle.languageCode, subtitle.text.length);
   } else {
-    showError(t(summaryErrorKey(result.code)), result.message);
+    if (result.code === 'CANCELLED') return;
+    showError(t(summaryErrorKey(result.code)), result.message, {
+      showOpenOptions: result.code === 'NO_API_KEY',
+    });
   }
 };
 
 const processRequest = async (pending: PendingRequest): Promise<void> => {
+  cancelRequested = false;
   activeVideoId = pending.videoId;
+  // Hide video-changed banner since we're now processing this video
+  if (pendingNewVideo?.videoId === pending.videoId) {
+    pendingNewVideo = null;
+    $('video-changed-banner').hidden = true;
+  }
   try {
     let subtitle: { text: string; languageCode: string; title: string };
     if (cachedSubtitle && cachedSubtitle.videoId === pending.videoId) {
@@ -153,6 +217,7 @@ const processRequest = async (pending: PendingRequest): Promise<void> => {
       };
       const result = (await chrome.runtime.sendMessage(subtitleMsg)) as SubtitleResult;
       if (activeVideoId !== pending.videoId) return;
+      if (cancelRequested) return;
       if (result.type === 'SUBTITLE_ERROR') {
         showError(t(subtitleErrorKey(result.code)), result.message);
         cachedSubtitle = null;
@@ -166,9 +231,11 @@ const processRequest = async (pending: PendingRequest): Promise<void> => {
       cachedSubtitle = { videoId: pending.videoId, ...subtitle };
     }
 
+    if (cancelRequested) return;
     await summarize(subtitle, pending.videoId);
   } catch (err) {
     if (activeVideoId !== pending.videoId) return;
+    if (cancelRequested) return;
     showError(err instanceof Error ? err.message : String(err));
   }
 };
@@ -180,6 +247,7 @@ const handleRequest = async (pending: PendingRequest): Promise<void> => {
     return;
   }
   isProcessing = true;
+  updateActionButtonStates();
   try {
     let current: PendingRequest | null = pending;
     while (current) {
@@ -190,6 +258,7 @@ const handleRequest = async (pending: PendingRequest): Promise<void> => {
   } finally {
     isProcessing = false;
     pendingNext = null;
+    updateActionButtonStates();
   }
 };
 
@@ -209,12 +278,15 @@ const onModeChange = async (mode: SummaryMode): Promise<void> => {
   await saveSettings({ summaryMode: mode });
   if (isProcessing || !cachedSubtitle) return;
   isProcessing = true;
+  cancelRequested = false;
+  updateActionButtonStates();
   try {
     await summarize(cachedSubtitle, cachedSubtitle.videoId);
   } catch (err) {
     showError(err instanceof Error ? err.message : String(err));
   } finally {
     isProcessing = false;
+    updateActionButtonStates();
   }
 };
 
@@ -224,13 +296,77 @@ const onOutputLangChange = async (lang: OutputLang): Promise<void> => {
   await saveSettings({ outputLanguage: lang });
   if (isProcessing || !cachedSubtitle) return;
   isProcessing = true;
+  cancelRequested = false;
+  updateActionButtonStates();
   try {
     await summarize(cachedSubtitle, cachedSubtitle.videoId);
   } catch (err) {
     showError(err instanceof Error ? err.message : String(err));
   } finally {
     isProcessing = false;
+    updateActionButtonStates();
   }
+};
+
+const onCopyClick = async (): Promise<void> => {
+  if (!currentSummaryMarkdown) return;
+  try {
+    await navigator.clipboard.writeText(currentSummaryMarkdown);
+    showToast(t('copiedToast'));
+  } catch (err) {
+    console.error('[sidepanel] clipboard write failed:', err);
+    showToast(t('copyFailedToast'));
+  }
+};
+
+const onRegenerateClick = async (): Promise<void> => {
+  if (isProcessing || !cachedSubtitle) return;
+  isProcessing = true;
+  cancelRequested = false;
+  updateActionButtonStates();
+  try {
+    await summarize(cachedSubtitle, cachedSubtitle.videoId);
+  } catch (err) {
+    showError(err instanceof Error ? err.message : String(err));
+  } finally {
+    isProcessing = false;
+    updateActionButtonStates();
+  }
+};
+
+const onCancelClick = (): void => {
+  cancelRequested = true;
+  const cancelMsg: Message = { type: 'CANCEL_SUMMARIZE' };
+  chrome.runtime.sendMessage(cancelMsg).catch(() => {
+    // ignore
+  });
+  restoreUiAfterCancel();
+};
+
+const onOpenOptionsClick = (): void => {
+  chrome.runtime.openOptionsPage();
+};
+
+const onSummarizeNewVideoClick = (): void => {
+  if (!pendingNewVideo) return;
+  const next: PendingRequest = {
+    videoId: pendingNewVideo.videoId,
+    tabId: pendingNewVideo.tabId,
+    createdAt: Date.now(),
+  };
+  pendingNewVideo = null;
+  $('video-changed-banner').hidden = true;
+  handleRequest(next).catch((err: unknown) => {
+    console.error('[sidepanel] handleRequest failed:', err);
+  });
+};
+
+const handleVideoNavigated = (videoId: string, tabId: number): void => {
+  // Ignore if same as currently displayed/processing video
+  if (videoId === activeVideoId) return;
+  if (videoId === cachedSubtitle?.videoId) return;
+  pendingNewVideo = { videoId, tabId };
+  $('video-changed-banner').hidden = false;
 };
 
 const setupModeToggle = (): void => {
@@ -259,6 +395,22 @@ const setupOutputLangSelect = (): void => {
   });
 };
 
+const setupActionButtons = (): void => {
+  $<HTMLButtonElement>('copy-btn').addEventListener('click', () => {
+    onCopyClick().catch((err: unknown) => {
+      console.error('[sidepanel] copy failed:', err);
+    });
+  });
+  $<HTMLButtonElement>('regenerate-btn').addEventListener('click', () => {
+    onRegenerateClick().catch((err: unknown) => {
+      console.error('[sidepanel] regenerate failed:', err);
+    });
+  });
+  $<HTMLButtonElement>('open-options-btn').addEventListener('click', onOpenOptionsClick);
+  $<HTMLButtonElement>('summarize-new-btn').addEventListener('click', onSummarizeNewVideoClick);
+  $<HTMLButtonElement>('cancel-btn').addEventListener('click', onCancelClick);
+};
+
 const init = async (): Promise<void> => {
   const settings = await loadSettings();
   summaryMode = settings.summaryMode;
@@ -269,6 +421,8 @@ const init = async (): Promise<void> => {
   updateModeButtons();
   setupModeToggle();
   setupOutputLangSelect();
+  setupActionButtons();
+  updateActionButtonStates();
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
@@ -292,11 +446,17 @@ const init = async (): Promise<void> => {
   }
 };
 
-chrome.runtime.onMessage.addListener((msg: Message) => {
+chrome.runtime.onMessage.addListener((msg: Message, sender) => {
   if (msg.type === 'NEW_REQUEST') {
     handleRequest(msg.pending).catch((err: unknown) => {
       console.error('[sidepanel] handleRequest failed:', err);
     });
+    return;
+  }
+  if (msg.type === 'VIDEO_NAVIGATED') {
+    const tabId = sender.tab?.id;
+    if (tabId == null) return;
+    handleVideoNavigated(msg.videoId, tabId);
   }
 });
 

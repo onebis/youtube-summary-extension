@@ -10,7 +10,7 @@ type GeminiResponse = {
 };
 
 export class GeminiClient implements LLMClient {
-  async summarize({ prompt, apiKey, model }: LLMRequest): Promise<LLMResponse> {
+  async summarize({ prompt, apiKey, model, signal }: LLMRequest): Promise<LLMResponse> {
     const url =
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}` +
       `:generateContent?key=${encodeURIComponent(apiKey)}`;
@@ -22,6 +22,7 @@ export class GeminiClient implements LLMClient {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { maxOutputTokens: 8192 },
       }),
+      signal,
     });
 
     if (!res.ok) {
