@@ -30,10 +30,8 @@ const buildButton = (): HTMLButtonElement => {
   btn.id = BUTTON_ID;
   btn.type = 'button';
   btn.className = 'yt-summary-button';
-  btn.setAttribute('aria-label', '要約');
-  btn.innerHTML =
-    '<span class="yt-summary-icon" aria-hidden="true">🪄</span>' +
-    '<span class="yt-summary-label">要約</span>';
+  btn.setAttribute('aria-label', 'Summarize');
+  btn.textContent = 'Summarize';
   btn.addEventListener('click', onSummarizeClick);
   return btn;
 };
