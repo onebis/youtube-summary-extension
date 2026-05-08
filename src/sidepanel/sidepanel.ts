@@ -58,10 +58,25 @@ const showError = (
 
 let currentSummaryMarkdown: string | null = null;
 
+// marked の CommonMark 準拠 emphasis ロジックは日本語のような CJK 文字の
+// 単語境界を認識しないため、`は**テーマ**という` のような intraword bold が
+// 平文のまま残る。code 領域を避けつつ `**X**` を `<strong>X</strong>` に
+// 事前変換して回避する。
+const preprocessMarkdown = (md: string): string => {
+  const parts = md.split(/(```[\s\S]*?```|`[^`\n]+?`)/g);
+  return parts
+    .map((part, i) =>
+      i % 2 === 1
+        ? part
+        : part.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>'),
+    )
+    .join('');
+};
+
 const showSummary = (markdown: string, languageCode: string, charCount: number): void => {
   hideAllSections();
   currentSummaryMarkdown = markdown;
-  const html = marked.parse(markdown, { async: false }) as string;
+  const html = marked.parse(preprocessMarkdown(markdown), { async: false }) as string;
   $('summary-content').innerHTML = html;
   $('result-meta').textContent = t('metaSubtitleInfo', {
     lang: languageCode,
@@ -472,7 +487,7 @@ const init = async (): Promise<void> => {
 };
 
 const renderProgressive = (markdown: string): void => {
-  const html = marked.parse(markdown, { async: false }) as string;
+  const html = marked.parse(preprocessMarkdown(markdown), { async: false }) as string;
   $('summary-content').innerHTML = html;
 };
 
