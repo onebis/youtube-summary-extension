@@ -1,19 +1,14 @@
-import type { LLMClient, LLMRequest, LLMResponse } from './index';
+import type { LLMClient, LLMRequest } from './index';
 import { LLMError } from './index';
 
-type GeminiResponse = {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{ text?: string }>;
-    };
-  }>;
-};
-
 export class GeminiClient implements LLMClient {
-  async summarize({ prompt, apiKey, model, signal }: LLMRequest): Promise<LLMResponse> {
+  async summarizeStream(
+    { prompt, apiKey, model, signal }: LLMRequest,
+    onChunk: (text: string) => void,
+  ): Promise<string> {
     const url =
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}` +
-      `:generateContent?key=${encodeURIComponent(apiKey)}`;
+      `:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
 
     const res = await fetch(url, {
       method: 'POST',
@@ -29,10 +24,43 @@ export class GeminiClient implements LLMClient {
       const body = await res.text().catch(() => '');
       throw new LLMError(res.status, body);
     }
+    if (!res.body) throw new Error('No response body');
 
-    const data = (await res.json()) as GeminiResponse;
-    const text =
-      data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
-    return { text };
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let accumulated = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (!data) continue;
+        try {
+          const ev = JSON.parse(data) as {
+            candidates?: Array<{
+              content?: { parts?: Array<{ text?: string }> };
+            }>;
+          };
+          const parts = ev.candidates?.[0]?.content?.parts ?? [];
+          for (const p of parts) {
+            const text = p.text ?? '';
+            if (text) {
+              accumulated += text;
+              onChunk(text);
+            }
+          }
+        } catch {
+          // skip malformed
+        }
+      }
+    }
+
+    return accumulated;
   }
 }

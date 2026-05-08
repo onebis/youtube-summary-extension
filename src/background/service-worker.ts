@@ -252,6 +252,7 @@ const runSummarize = async (
   mode: 'short' | 'detailed',
   title: string,
   outputLanguage: 'ja' | 'en',
+  videoId: string,
 ): Promise<SummaryResult> => {
   const settings = await loadSettings();
   const provider = settings.activeProvider;
@@ -271,6 +272,12 @@ const runSummarize = async (
   const controller = new AbortController();
   activeSummarizeController = controller;
 
+  const broadcast = (msg: { type: 'STREAM_START' | 'SUMMARY_CHUNK'; videoId: string; text?: string }) => {
+    chrome.runtime.sendMessage(msg).catch(() => {
+      // No receivers, ignore
+    });
+  };
+
   const MAX_ATTEMPTS = 3;
   let lastErr: unknown = null;
 
@@ -280,16 +287,23 @@ const runSummarize = async (
         return { type: 'SUMMARY_ERROR', code: 'CANCELLED', message: 'Cancelled by user' };
       }
       try {
-        const result = await client.summarize({
-          prompt,
-          apiKey: cred.apiKey,
-          model: cred.model,
-          signal: controller.signal,
-        });
-        if (!result.text) {
+        broadcast({ type: 'STREAM_START', videoId });
+        const accumulated = await client.summarizeStream(
+          {
+            prompt,
+            apiKey: cred.apiKey,
+            model: cred.model,
+            signal: controller.signal,
+          },
+          (chunk) => {
+            if (controller.signal.aborted) return;
+            broadcast({ type: 'SUMMARY_CHUNK', videoId, text: chunk });
+          },
+        );
+        if (!accumulated) {
           return { type: 'SUMMARY_ERROR', code: 'OTHER', message: 'Empty response from LLM' };
         }
-        return { type: 'SUMMARY_RESULT', markdown: result.text };
+        return { type: 'SUMMARY_RESULT', markdown: accumulated };
       } catch (err) {
         lastErr = err;
         if (controller.signal.aborted) {
@@ -300,7 +314,6 @@ const runSummarize = async (
           console.warn(
             `[bg] LLM transient error (HTTP ${err.status}), retrying in ${delayMs}ms (attempt ${attempt}/${MAX_ATTEMPTS})`,
           );
-          // Sleep but bail if aborted during sleep
           await new Promise<void>((resolve) => {
             const timer = setTimeout(resolve, delayMs);
             controller.signal.addEventListener(
@@ -418,7 +431,7 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
   }
 
   if (msg.type === 'SUMMARIZE') {
-    runSummarize(msg.subtitle, msg.mode, msg.title, msg.outputLanguage)
+    runSummarize(msg.subtitle, msg.mode, msg.title, msg.outputLanguage, msg.videoId)
       .then((result) => sendResponse(result))
       .catch((err: unknown) => {
         sendResponse({

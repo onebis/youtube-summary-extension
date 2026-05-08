@@ -1,12 +1,11 @@
-import type { LLMClient, LLMRequest, LLMResponse } from './index';
+import type { LLMClient, LLMRequest } from './index';
 import { LLMError } from './index';
 
-type OpenAIChatResponse = {
-  choices?: Array<{ message?: { content?: string } }>;
-};
-
 export class OpenAIClient implements LLMClient {
-  async summarize({ prompt, apiKey, model, signal }: LLMRequest): Promise<LLMResponse> {
+  async summarizeStream(
+    { prompt, apiKey, model, signal }: LLMRequest,
+    onChunk: (text: string) => void,
+  ): Promise<string> {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -17,6 +16,7 @@ export class OpenAIClient implements LLMClient {
         model,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 8192,
+        stream: true,
       }),
       signal,
     });
@@ -25,9 +25,38 @@ export class OpenAIClient implements LLMClient {
       const body = await res.text().catch(() => '');
       throw new LLMError(res.status, body);
     }
+    if (!res.body) throw new Error('No response body');
 
-    const data = (await res.json()) as OpenAIChatResponse;
-    const text = data.choices?.[0]?.message?.content ?? '';
-    return { text };
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let accumulated = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (!data || data === '[DONE]') continue;
+        try {
+          const ev = JSON.parse(data) as {
+            choices?: Array<{ delta?: { content?: string } }>;
+          };
+          const text = ev.choices?.[0]?.delta?.content ?? '';
+          if (text) {
+            accumulated += text;
+            onChunk(text);
+          }
+        } catch {
+          // skip malformed
+        }
+      }
+    }
+
+    return accumulated;
   }
 }

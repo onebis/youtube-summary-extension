@@ -47,8 +47,16 @@ const init = async (): Promise<void> => {
 
   updateActiveSection(settings.activeProvider);
 
-  $<HTMLSelectElement>('ui-language').value = settings.uiLanguage;
-  $<HTMLSelectElement>('output-language').value = settings.outputLanguage;
+  document
+    .querySelectorAll<HTMLInputElement>('input[name="ui-language"]')
+    .forEach((el) => {
+      el.checked = el.value === settings.uiLanguage;
+    });
+  document
+    .querySelectorAll<HTMLInputElement>('input[name="output-language"]')
+    .forEach((el) => {
+      el.checked = el.value === settings.outputLanguage;
+    });
 
   $<HTMLFormElement>('form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -70,10 +78,13 @@ const init = async (): Promise<void> => {
       {} as Record<Provider, { apiKey: string; model: string }>,
     );
 
-    const uiLanguage = $<HTMLSelectElement>('ui-language')
-      .value as StorageSchema['uiLanguage'];
-    const outputLanguage = $<HTMLSelectElement>('output-language')
-      .value as StorageSchema['outputLanguage'];
+    const uiLanguage =
+      (document.querySelector<HTMLInputElement>('input[name="ui-language"]:checked')
+        ?.value as StorageSchema['uiLanguage'] | undefined) ?? settings.uiLanguage;
+    const outputLanguage =
+      (document.querySelector<HTMLInputElement>(
+        'input[name="output-language"]:checked',
+      )?.value as StorageSchema['outputLanguage'] | undefined) ?? settings.outputLanguage;
 
     await saveSettings({
       activeProvider,
@@ -87,11 +98,18 @@ const init = async (): Promise<void> => {
     applyTranslations();
 
     status.textContent = t('savedMessage');
-    status.className = 'success';
+    status.classList.add('success');
+    status.hidden = false;
+    void status.offsetWidth;
+    status.classList.add('toast-show');
     setTimeout(() => {
-      status.textContent = '';
-      status.className = '';
-    }, 3000);
+      status.classList.remove('toast-show');
+      setTimeout(() => {
+        status.hidden = true;
+        status.classList.remove('success');
+        status.textContent = '';
+      }, 220);
+    }, 2500);
   });
 };
 

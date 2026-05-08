@@ -39,6 +39,7 @@
   "copyButton": { "message": "コピー" },
   "regenerateButton": { "message": "再生成" },
   "cancelButton": { "message": "中止" },
+  "settingsButton": { "message": "設定" },
   "copiedToast": { "message": "コピーしました" },
   "copyFailedToast": { "message": "コピーに失敗しました" },
   "openOptionsButton": { "message": "設定を開く" },

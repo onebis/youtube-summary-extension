@@ -10,7 +10,7 @@ export type LLMResponse = {
 };
 
 export interface LLMClient {
-  summarize(req: LLMRequest): Promise<LLMResponse>;
+  summarizeStream(req: LLMRequest, onChunk: (text: string) => void): Promise<string>;
 }
 
 export type LLMUserCode =

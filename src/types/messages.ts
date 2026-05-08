@@ -41,6 +41,9 @@ export type Message =
       mode: SummaryMode;
       title: string;
       outputLanguage: 'ja' | 'en';
+      videoId: string;
     }
   | { type: 'VIDEO_NAVIGATED'; videoId: string }
-  | { type: 'CANCEL_SUMMARIZE' };
+  | { type: 'CANCEL_SUMMARIZE' }
+  | { type: 'STREAM_START'; videoId: string }
+  | { type: 'SUMMARY_CHUNK'; videoId: string; text: string };

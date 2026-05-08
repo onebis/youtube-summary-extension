@@ -70,6 +70,13 @@ header h1 {
   outline-offset: 2px;
 }
 
+.header-btn.icon-only {
+  width: 28px;
+  padding: 0;
+  font-size: 14px;
+  justify-content: center;
+}
+
 .lang-select {
   border: 1px solid #d5d5d5;
   border-radius: 16px;
@@ -262,9 +269,9 @@ main {
 
 .toast {
   position: fixed;
-  bottom: 16px;
+  top: 64px;
   left: 50%;
-  transform: translateX(-50%) translateY(8px);
+  transform: translateX(-50%) translateY(-8px);
   background-color: #1f2937;
   color: #ffffff;
   padding: 8px 16px;

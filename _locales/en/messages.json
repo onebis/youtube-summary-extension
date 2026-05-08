@@ -39,6 +39,7 @@
   "copyButton": { "message": "Copy" },
   "regenerateButton": { "message": "Regenerate" },
   "cancelButton": { "message": "Cancel" },
+  "settingsButton": { "message": "Settings" },
   "copiedToast": { "message": "Copied to clipboard" },
   "copyFailedToast": { "message": "Failed to copy" },
   "openOptionsButton": { "message": "Open Settings" },

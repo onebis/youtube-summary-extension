@@ -141,6 +141,11 @@ let activeProvider: Provider = 'claude';
 let outputLanguage: OutputLang = 'ja';
 let pendingNewVideo: { videoId: string; tabId: number } | null = null;
 let cancelRequested = false;
+let streamingVideoId: string | null = null;
+let streamingSubtitle:
+  | { text: string; languageCode: string; title: string }
+  | null = null;
+let chunkAccumulator = '';
 
 const updateActionButtonStates = (): void => {
   const resultShown = !$('result').hidden;
@@ -176,23 +181,36 @@ const summarize = async (
   videoId: string,
 ): Promise<void> => {
   showLoading(loadingLabelFor(summaryMode));
+  streamingVideoId = videoId;
+  streamingSubtitle = subtitle;
+  chunkAccumulator = '';
+
   const msg: Message = {
     type: 'SUMMARIZE',
     subtitle: subtitle.text,
     mode: summaryMode,
     title: subtitle.title,
     outputLanguage,
+    videoId,
   };
-  const result = (await chrome.runtime.sendMessage(msg)) as SummaryResult;
-  if (activeVideoId !== videoId) return;
-  if (cancelRequested) return;
-  if (result.type === 'SUMMARY_RESULT') {
-    showSummary(result.markdown, subtitle.languageCode, subtitle.text.length);
-  } else {
-    if (result.code === 'CANCELLED') return;
-    showError(t(summaryErrorKey(result.code)), result.message, {
-      showOpenOptions: result.code === 'NO_API_KEY',
-    });
+  try {
+    const result = (await chrome.runtime.sendMessage(msg)) as SummaryResult;
+    if (activeVideoId !== videoId) return;
+    if (cancelRequested) return;
+    if (result.type === 'SUMMARY_RESULT') {
+      showSummary(result.markdown, subtitle.languageCode, subtitle.text.length);
+    } else {
+      if (result.code === 'CANCELLED') return;
+      showError(t(summaryErrorKey(result.code)), result.message, {
+        showOpenOptions: result.code === 'NO_API_KEY',
+      });
+    }
+  } finally {
+    if (streamingVideoId === videoId) {
+      streamingVideoId = null;
+      streamingSubtitle = null;
+      chunkAccumulator = '';
+    }
   }
 };
 
@@ -395,6 +413,12 @@ const setupOutputLangSelect = (): void => {
   });
 };
 
+const setupSettingsButton = (): void => {
+  $<HTMLButtonElement>('settings-btn').addEventListener('click', () => {
+    chrome.runtime.openOptionsPage();
+  });
+};
+
 const setupActionButtons = (): void => {
   $<HTMLButtonElement>('copy-btn').addEventListener('click', () => {
     onCopyClick().catch((err: unknown) => {
@@ -422,6 +446,7 @@ const init = async (): Promise<void> => {
   setupModeToggle();
   setupOutputLangSelect();
   setupActionButtons();
+  setupSettingsButton();
   updateActionButtonStates();
 
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -446,6 +471,36 @@ const init = async (): Promise<void> => {
   }
 };
 
+const renderProgressive = (markdown: string): void => {
+  const html = marked.parse(markdown, { async: false }) as string;
+  $('summary-content').innerHTML = html;
+};
+
+const onStreamStart = (videoId: string): void => {
+  if (videoId !== streamingVideoId) return;
+  if (cancelRequested) return;
+  chunkAccumulator = '';
+};
+
+const onSummaryChunk = (videoId: string, text: string): void => {
+  if (videoId !== streamingVideoId) return;
+  if (cancelRequested) return;
+  if (videoId !== activeVideoId) return;
+  if (chunkAccumulator === '') {
+    // First chunk: switch from loading view to result view
+    hideAllSections();
+    if (streamingSubtitle) {
+      $('result-meta').textContent = t('metaSubtitleInfo', {
+        lang: streamingSubtitle.languageCode,
+        chars: streamingSubtitle.text.length.toLocaleString(),
+      });
+    }
+    $('result').hidden = false;
+  }
+  chunkAccumulator += text;
+  renderProgressive(chunkAccumulator);
+};
+
 chrome.runtime.onMessage.addListener((msg: Message, sender) => {
   if (msg.type === 'NEW_REQUEST') {
     handleRequest(msg.pending).catch((err: unknown) => {
@@ -457,6 +512,15 @@ chrome.runtime.onMessage.addListener((msg: Message, sender) => {
     const tabId = sender.tab?.id;
     if (tabId == null) return;
     handleVideoNavigated(msg.videoId, tabId);
+    return;
+  }
+  if (msg.type === 'STREAM_START') {
+    onStreamStart(msg.videoId);
+    return;
+  }
+  if (msg.type === 'SUMMARY_CHUNK') {
+    onSummaryChunk(msg.videoId, msg.text);
+    return;
   }
 });
 
