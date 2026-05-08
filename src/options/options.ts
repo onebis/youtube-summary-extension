@@ -4,10 +4,58 @@ import type { Provider, StorageSchema } from '../types';
 
 const PROVIDERS: Provider[] = ['claude', 'openai', 'gemini'];
 
+type ModelOption = { value: string; recommended?: boolean };
+
+const MODEL_OPTIONS: Record<Provider, ModelOption[]> = {
+  claude: [
+    { value: 'claude-sonnet-4-6', recommended: true },
+    { value: 'claude-opus-4-7' },
+    { value: 'claude-haiku-4-5-20251001' },
+  ],
+  openai: [
+    { value: 'gpt-4o', recommended: true },
+    { value: 'gpt-4o-mini' },
+    { value: 'gpt-4-turbo' },
+  ],
+  gemini: [
+    { value: 'gemini-2.5-flash', recommended: true },
+    { value: 'gemini-2.5-pro' },
+    { value: 'gemini-2.0-flash' },
+  ],
+};
+
 const DEFAULT_MODELS: Record<Provider, string> = {
   claude: 'claude-sonnet-4-6',
   openai: 'gpt-4o',
   gemini: 'gemini-2.5-flash',
+};
+
+const populateModelOptions = (
+  provider: Provider,
+  selectedValue: string,
+): void => {
+  const select = document.getElementById(`${provider}-model`) as HTMLSelectElement | null;
+  if (!select) return;
+  select.innerHTML = '';
+  const recommendedSuffix = t('recommendedSuffix');
+  const options = MODEL_OPTIONS[provider];
+
+  // Preserve custom (non-listed) saved value as a custom option at top
+  if (selectedValue && !options.some((m) => m.value === selectedValue)) {
+    const custom = document.createElement('option');
+    custom.value = selectedValue;
+    custom.textContent = `${selectedValue} (custom)`;
+    select.appendChild(custom);
+  }
+
+  for (const m of options) {
+    const opt = document.createElement('option');
+    opt.value = m.value;
+    opt.textContent = m.recommended ? `${m.value}${recommendedSuffix}` : m.value;
+    select.appendChild(opt);
+  }
+
+  select.value = selectedValue || DEFAULT_MODELS[provider];
 };
 
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -33,7 +81,7 @@ const init = async (): Promise<void> => {
 
   for (const p of PROVIDERS) {
     $<HTMLInputElement>(`${p}-key`).value = settings.providers[p].apiKey;
-    $<HTMLInputElement>(`${p}-model`).value = settings.providers[p].model;
+    populateModelOptions(p, settings.providers[p].model);
   }
 
   document
@@ -71,7 +119,8 @@ const init = async (): Promise<void> => {
       (acc, p) => {
         acc[p] = {
           apiKey: $<HTMLInputElement>(`${p}-key`).value.trim(),
-          model: $<HTMLInputElement>(`${p}-model`).value.trim() || DEFAULT_MODELS[p],
+          model:
+            $<HTMLSelectElement>(`${p}-model`).value.trim() || DEFAULT_MODELS[p],
         };
         return acc;
       },
@@ -96,6 +145,10 @@ const init = async (): Promise<void> => {
     // Reload i18n in case UI language changed
     await initI18n(uiLanguage);
     applyTranslations();
+    // Repopulate model options so "(推奨)" suffix follows the new UI language
+    for (const p of PROVIDERS) {
+      populateModelOptions(p, providers[p].model);
+    }
 
     status.textContent = t('savedMessage');
     status.classList.add('success');

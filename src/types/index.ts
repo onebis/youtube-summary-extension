@@ -5,7 +5,7 @@ export type ProviderConfig = {
   model: string;
 };
 
-export type SummaryMode = 'short' | 'detailed';
+export type SummaryMode = 'short' | 'medium' | 'detailed';
 
 export type StorageSchema = {
   activeProvider: Provider;

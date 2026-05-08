@@ -4,6 +4,7 @@ import type {
   SubtitleResult,
   SummaryResult,
 } from '../types/messages';
+import type { SummaryMode } from '../types';
 import { loadSettings } from '../lib/storage';
 import { buildPrompt } from '../lib/prompt';
 import { LLMError } from '../lib/llm';
@@ -62,10 +63,6 @@ const extractAndFetchInPage = async (): Promise<InPageResult> => {
     player.videoDetails?.videoId ?? new URLSearchParams(location.search).get('v') ?? '';
 
   const tracks = player.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
-  if (tracks.length === 0) {
-    return { ok: false, code: 'NO_SUBTITLE', detail: 'No caption tracks listed' };
-  }
-
   const videoLang = player.videoDetails?.defaultAudioLanguage;
   const score = (t: (typeof tracks)[number]): number => {
     let s = 0;
@@ -74,82 +71,20 @@ const extractAndFetchInPage = async (): Promise<InPageResult> => {
     if (t.languageCode === 'en') s += 1;
     return s;
   };
-  const bestTrack = [...tracks].sort((a, b) => score(b) - score(a))[0];
+  const bestTrack =
+    tracks.length > 0 ? [...tracks].sort((a, b) => score(b) - score(a))[0] : null;
 
-  const findPanel = (): HTMLElement | null =>
-    document.querySelector<HTMLElement>(
-      'ytd-engagement-panel-section-list-renderer[target-id*="transcript"]',
-    );
-
-  const isVisible = (el: HTMLElement): boolean => {
-    if (el.hasAttribute('hidden')) return false;
-    const rect = el.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
-  };
-
-  const extractText = (panel: HTMLElement): string => {
-    const bodyContainer =
-      panel.querySelector<HTMLElement>('#body') ??
-      panel.querySelector<HTMLElement>('ytd-transcript-renderer') ??
-      panel.querySelector<HTMLElement>('ytd-transcript-search-panel-renderer') ??
-      panel;
-
-    // Try specific segment selectors first
-    const candidates = [
-      'ytd-transcript-segment-renderer',
-      'yt-transcript-segment-renderer',
-    ];
-    for (const sel of candidates) {
-      const els = bodyContainer.querySelectorAll(sel);
-      if (els.length > 0) {
-        const lines = Array.from(els)
-          .map((el) => {
-            const tsEl = el.querySelector('.segment-timestamp, [class*="timestamp"]');
-            const ts = (tsEl?.textContent ?? '').trim();
-            const txtEl = el.querySelector(
-              '.segment-text, yt-formatted-string.segment-text, [class*="segment-text"]',
-            );
-            const text = (txtEl?.textContent ?? '').replace(/\s+/g, ' ').trim();
-            if (text && ts) return `[${ts}] ${text}`;
-            if (text) return text;
-            const all = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
-            if (!all) return '';
-            const m = all.match(/^(\d{1,3}:\d{2}(?::\d{2})?)\s*(.+)$/);
-            if (m) return `[${m[1]}] ${m[2]}`;
-            return all;
-          })
-          .filter((t) => t.length > 0);
-        if (lines.length > 0) return lines.join('\n');
-      }
-    }
-
-    // Fallback: use textContent (works regardless of visibility), regex-split timestamps
-    const raw = (bodyContainer.textContent ?? '').trim();
-    if (!raw) return '';
-
-    return raw
-      .replace(/文字音声変換を検索|文字起こし|Search transcript|Transcript/gi, '')
-      .replace(/(\d{1,3}:\d{2}(?::\d{2})?)\s*/g, '\n[$1] ')
-      .replace(/^\n+/, '')
-      .replace(/[ \t]+/g, ' ')
-      .replace(/\n[ ]+/g, '\n')
-      .replace(/\n+/g, '\n')
-      .trim();
-  };
-
-  // Always apply hide style during the entire operation so the panel never flashes
-  // visible regardless of its previous state (including leftover from failed close).
+  // Hide ALL engagement panels during extraction. YouTube exposes transcripts in
+  // different panels per video (dedicated `engagement-panel-searchable-transcript`
+  // OR a tab inside `engagement-panel-structured-description`), so we can't target
+  // by `target-id*="transcript"` alone. Hiding by visibility/opacity (not offscreen)
+  // keeps elements in layout flow so YouTube's lazy loading still triggers.
   const hideStyle = document.createElement('style');
   hideStyle.textContent = `
-    ytd-engagement-panel-section-list-renderer[target-id*="transcript"] {
+    ytd-engagement-panel-section-list-renderer {
       visibility: hidden !important;
-      position: fixed !important;
-      top: -10000px !important;
-      left: -10000px !important;
-      width: 400px !important;
-      height: 600px !important;
+      opacity: 0 !important;
       pointer-events: none !important;
-      z-index: -1 !important;
     }
   `;
   document.head.appendChild(hideStyle);
@@ -161,11 +96,57 @@ const extractAndFetchInPage = async (): Promise<InPageResult> => {
     root.querySelector<HTMLElement>('yt-icon-button#dismiss-button button') ??
     root.querySelector<HTMLElement>('#dismiss-button');
 
-  try {
-    let panel = findPanel();
-    const wasAlreadyOpen = panel != null && isVisible(panel);
+  const findGlobalSegments = (): HTMLElement[] =>
+    Array.from(
+      document.querySelectorAll<HTMLElement>(
+        'ytd-transcript-segment-renderer, yt-transcript-segment-renderer',
+      ),
+    );
 
-    if (!wasAlreadyOpen) {
+  // Find any engagement panel whose textContent contains many timestamps
+  // (transcript-with-chapters in the structured-description panel uses different
+  // element names, so we fall back to panel-level text scraping).
+  const TIMESTAMP_RE = /\d{1,3}:\d{2}(?::\d{2})?/g;
+  const findPanelByTimestampDensity = (
+    minCount: number,
+  ): HTMLElement | null => {
+    const panels = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        'ytd-engagement-panel-section-list-renderer',
+      ),
+    );
+    let best: HTMLElement | null = null;
+    let bestCount = minCount;
+    for (const p of panels) {
+      const text = p.textContent ?? '';
+      const count = (text.match(TIMESTAMP_RE) ?? []).length;
+      if (count > bestCount) {
+        bestCount = count;
+        best = p;
+      }
+    }
+    return best;
+  };
+
+  const extractFromPanelText = (panel: HTMLElement): string => {
+    let text = panel.textContent ?? '';
+    const firstTsIdx = text.search(/\d{1,3}:\d{2}/);
+    if (firstTsIdx > 0) text = text.slice(firstTsIdx);
+    return text
+      .replace(/(\d{1,3}:\d{2}(?::\d{2})?)\s*秒?\s*/g, '\n[$1] ')
+      .replace(/^\n+/, '')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n[ ]+/g, '\n')
+      .replace(/\n+/g, '\n')
+      .trim();
+  };
+
+  try {
+    // If transcript was previously opened, segments may already be in DOM
+    let segs = findGlobalSegments();
+
+    if (segs.length === 0) {
+      // Find and click any "transcript / 文字起こし" affordance
       const buttons = Array.from(document.querySelectorAll('button, tp-yt-paper-button'));
       let transcriptBtn: HTMLElement | null = null;
       for (const b of buttons) {
@@ -189,51 +170,128 @@ const extractAndFetchInPage = async (): Promise<InPageResult> => {
           }
         }
       }
-
       if (!transcriptBtn) {
         return {
           ok: false,
           code: 'NO_SUBTITLE',
-          detail: 'Transcript button not found (transcript may not be available)',
+          detail: 'Transcript button not found',
         };
       }
-
       transcriptBtn.click();
-    }
 
-    // Wait for panel to populate with content (textContent works under hide style)
-    const startTime = Date.now();
-    let lastLen = 0;
-    while (Date.now() - startTime < 8000) {
-      panel = findPanel();
-      if (panel) {
-        const len = (panel.textContent ?? '').length;
-        if (len > 200 && len === lastLen) break;
-        lastLen = len;
+      // Wait for transcript content. Accept either:
+      //   (a) standard segment elements in DOM, or
+      //   (b) any engagement panel that has many timestamps (>5)
+      const startTime = Date.now();
+      while (Date.now() - startTime < 12000) {
+        segs = findGlobalSegments();
+        if (segs.length > 0) {
+          await new Promise((r) => setTimeout(r, 350));
+          segs = findGlobalSegments();
+          break;
+        }
+        if (findPanelByTimestampDensity(5)) {
+          await new Promise((r) => setTimeout(r, 350));
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 200));
       }
-      await new Promise((r) => setTimeout(r, 250));
     }
 
-    if (!panel) {
-      return { ok: false, code: 'FETCH_FAILED', detail: 'Transcript panel not found after click' };
+    let extractedText = '';
+    let containingPanel: HTMLElement | null = null;
+
+    // Path 1: extraction from standard segment elements
+    if (segs.length > 0) {
+      const lines = segs
+        .map((el) => {
+          const tsEl = el.querySelector('.segment-timestamp, [class*="timestamp"]');
+          const ts = (tsEl?.textContent ?? '').trim();
+          const txtEl = el.querySelector(
+            '.segment-text, yt-formatted-string.segment-text, [class*="segment-text"]',
+          );
+          const text = (txtEl?.textContent ?? '').replace(/\s+/g, ' ').trim();
+          if (text && ts) return `[${ts}] ${text}`;
+          if (text) return text;
+          const all = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+          if (!all) return '';
+          const m = all.match(/^(\d{1,3}:\d{2}(?::\d{2})?)\s*(.+)$/);
+          if (m) return `[${m[1]}] ${m[2]}`;
+          return all;
+        })
+        .filter((t) => t.length > 0);
+      extractedText = lines.join('\n');
+      let walker: HTMLElement | null = segs[0] ?? null;
+      while (walker && walker !== document.body) {
+        if (walker.tagName === 'YTD-ENGAGEMENT-PANEL-SECTION-LIST-RENDERER') {
+          containingPanel = walker;
+          break;
+        }
+        walker = walker.parentElement;
+      }
     }
 
-    const text = extractText(panel);
-    if (!text || text.length < 10) {
+    // Path 2: fallback to scraping panel textContent (handles transcript-in-tab cases
+    // where YouTube uses a non-standard element for segments)
+    if (!extractedText || extractedText.length < 10) {
+      const panel = findPanelByTimestampDensity(5);
+      if (panel) {
+        extractedText = extractFromPanelText(panel);
+        containingPanel = panel;
+      }
+    }
+
+    if (!extractedText || extractedText.length < 10) {
+      const allPanels = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          'ytd-engagement-panel-section-list-renderer',
+        ),
+      );
+      const allText = allPanels
+        .map((p) => p.textContent ?? '')
+        .join(' ')
+        .toLowerCase();
+      const noTranscriptHints = [
+        'no transcript',
+        'transcript is not available',
+        'transcript unavailable',
+        'transcript is disabled',
+        '文字起こしを利用できません',
+        '文字起こしがありません',
+        '字幕がありません',
+      ];
+      if (noTranscriptHints.some((h) => allText.includes(h.toLowerCase()))) {
+        return {
+          ok: false,
+          code: 'NO_SUBTITLE',
+          detail: 'YouTube reports no transcript available',
+        };
+      }
+      const sample = allPanels
+        .map((p) => p.textContent ?? '')
+        .join(' | ')
+        .replace(/\s+/g, ' ')
+        .slice(0, 200);
       return {
         ok: false,
         code: 'FETCH_FAILED',
-        detail: `Transcript panel content too short (${text.length} chars)`,
+        detail:
+          `Could not extract transcript ` +
+          `(segs=${segs.length}, panels=${allPanels.length}, ` +
+          `extractedChars=${extractedText.length}). Sample: "${sample}"`,
       };
     }
 
-    // Always attempt to close so leftovers are cleaned up. If user had it open and
-    // we close it, the trade-off is acceptable vs. having stale panels accumulate.
-    const closeBtn = findCloseBtn(panel);
-    if (closeBtn) {
-      closeBtn.click();
-      await new Promise((r) => setTimeout(r, 300));
+    // Close the containing panel
+    if (containingPanel) {
+      const closeBtn = findCloseBtn(containingPanel);
+      if (closeBtn) {
+        closeBtn.click();
+        await new Promise((r) => setTimeout(r, 300));
+      }
     }
+
+    const text = extractedText;
 
     return {
       ok: true,
@@ -249,7 +307,7 @@ const extractAndFetchInPage = async (): Promise<InPageResult> => {
 
 const runSummarize = async (
   subtitle: string,
-  mode: 'short' | 'detailed',
+  mode: SummaryMode,
   title: string,
   outputLanguage: 'ja' | 'en',
   videoId: string,

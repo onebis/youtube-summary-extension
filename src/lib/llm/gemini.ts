@@ -15,7 +15,7 @@ export class GeminiClient implements LLMClient {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 8192 },
+        generationConfig: { maxOutputTokens: 16384 },
       }),
       signal,
     });

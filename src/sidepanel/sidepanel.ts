@@ -171,9 +171,9 @@ const restoreUiAfterCancel = (): void => {
 
 const loadingLabelFor = (mode: SummaryMode): string => {
   const provider = PROVIDER_NAMES[activeProvider];
-  return mode === 'detailed'
-    ? t('loadingSummarizingDetailed', { provider })
-    : t('loadingSummarizing', { provider });
+  if (mode === 'detailed') return t('loadingSummarizingDetailed', { provider });
+  if (mode === 'medium') return t('loadingSummarizingMedium', { provider });
+  return t('loadingSummarizing', { provider });
 };
 
 const summarize = async (
@@ -391,7 +391,7 @@ const setupModeToggle = (): void => {
   document.querySelectorAll<HTMLButtonElement>('.mode-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const mode = btn.dataset['mode'] as SummaryMode | undefined;
-      if (mode === 'short' || mode === 'detailed') {
+      if (mode === 'short' || mode === 'medium' || mode === 'detailed') {
         onModeChange(mode).catch((err: unknown) => {
           console.error('[sidepanel] onModeChange failed:', err);
         });

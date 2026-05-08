@@ -127,7 +127,21 @@ input[type="text"] {
   color: inherit;
 }
 
-input:focus-visible {
+select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #c5c5c5;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  background-color: #fff;
+  color: inherit;
+  cursor: pointer;
+}
+
+input:focus-visible,
+select:focus-visible {
   outline: 2px solid #4f46e5;
   outline-offset: 1px;
   border-color: transparent;
@@ -229,7 +243,8 @@ button[type="submit"]:hover {
     border-left-color: #4338ca;
   }
   input[type="password"],
-  input[type="text"] {
+  input[type="text"],
+  select {
     background-color: #1a1a1a;
     border-color: #303030;
     color: inherit;

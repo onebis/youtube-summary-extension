@@ -15,7 +15,7 @@ export class OpenAIClient implements LLMClient {
       body: JSON.stringify({
         model,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 8192,
+        max_tokens: 16384,
         stream: true,
       }),
       signal,
