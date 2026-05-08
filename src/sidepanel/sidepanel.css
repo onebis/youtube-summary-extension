@@ -5,10 +5,19 @@ body {
   color: #0f0f0f;
   background-color: #ffffff;
   font-size: 14px;
+  line-height: 1.6;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 header {
-  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid #e5e5e5;
   position: sticky;
   top: 0;
@@ -22,25 +31,94 @@ header h1 {
   font-weight: 600;
 }
 
+.mode-toggle {
+  display: inline-flex;
+  background-color: #f0f0f0;
+  border-radius: 16px;
+  padding: 2px;
+  gap: 0;
+}
+
+.mode-btn {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  font: 500 12px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #606060;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.mode-btn:hover:not(.active) {
+  color: #0f0f0f;
+}
+
+.mode-btn.active {
+  background-color: #ffffff;
+  color: #4f46e5;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+}
+
+.mode-btn:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
 main {
   padding: 16px;
 }
 
-#empty-state,
-#loading,
-#error {
+#empty-state {
   color: #606060;
+}
+
+#loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 0;
+  color: #606060;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e5e5;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#loading-message {
+  margin: 0;
 }
 
 #error #error-message {
   color: #cc0000;
   font-weight: 500;
+  margin: 0 0 6px;
 }
 
-#result h2 {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 4px;
+.error-detail {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: #909090;
+  background-color: #f7f7f7;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 #result-meta {
@@ -49,19 +127,167 @@ main {
   margin: 0 0 12px;
 }
 
-#result-text {
+.markdown-body h1 {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.markdown-body h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 22px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #e0e7ff;
+  color: #4338ca;
+}
+
+.markdown-body h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 24px 0 10px;
+  padding: 10px 14px;
+  background-color: #eef2ff;
+  border-left: 4px solid #4f46e5;
+  border-radius: 0 8px 8px 0;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.markdown-body p {
+  margin: 8px 0;
+  line-height: 1.7;
+}
+
+.markdown-body h3 + p {
+  margin-top: 10px;
+  padding-left: 14px;
+}
+
+.markdown-body h3 + p + p {
+  padding-left: 14px;
+}
+
+.markdown-body h3 + p + p + p {
+  padding-left: 14px;
+}
+
+.markdown-body h3 + p + p + p + p {
+  padding-left: 14px;
+}
+
+.markdown-body ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0;
+}
+
+.markdown-body ul li {
+  position: relative;
+  padding-left: 18px;
+  margin: 7px 0;
+  line-height: 1.55;
+}
+
+.markdown-body ul li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #4f46e5;
+}
+
+.markdown-body ul ul {
+  margin: 4px 0 4px;
+}
+
+.markdown-body ul ul li::before {
+  width: 5px;
+  height: 5px;
+  background-color: #a5b4fc;
+}
+
+.markdown-body ol {
+  padding-left: 22px;
+  margin: 8px 0;
+}
+
+.markdown-body ol li {
+  margin: 7px 0;
+  line-height: 1.55;
+}
+
+.markdown-body :not(pre) > code {
+  display: inline-block;
+  background-color: #eef2ff;
+  color: #4338ca;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.6;
+}
+
+.markdown-body pre {
   background-color: #f7f7f7;
   border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  padding: 12px;
-  white-space: pre-wrap;
-  word-break: break-word;
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+
+.markdown-body pre code {
+  background: none;
+  padding: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
-  line-height: 1.6;
-  margin: 0;
-  max-height: calc(100vh - 200px);
-  overflow-y: auto;
+}
+
+.markdown-body strong {
+  font-weight: 700;
+  color: #4338ca;
+}
+
+.markdown-body blockquote {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 14px 0 22px;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.75;
+}
+
+.markdown-body blockquote p {
+  color: #ffffff;
+  margin: 8px 0;
+}
+
+.markdown-body blockquote p:first-child {
+  margin-top: 0;
+}
+
+.markdown-body blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body blockquote strong {
+  color: #fde68a;
+  font-weight: 700;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -72,17 +298,72 @@ main {
   header {
     border-bottom-color: #303030;
   }
+  .mode-toggle {
+    background-color: #1a1a1a;
+  }
+  .mode-btn {
+    color: #a0a0a0;
+  }
+  .mode-btn:hover:not(.active) {
+    color: #f1f1f1;
+  }
+  .mode-btn.active {
+    background-color: #303030;
+    color: #818cf8;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
   #empty-state,
   #loading,
-  #error,
   #result-meta {
     color: #a0a0a0;
+  }
+  .spinner {
+    border-color: #303030;
+    border-top-color: #818cf8;
   }
   #error #error-message {
     color: #ff6b6b;
   }
-  #result-text {
+  .error-detail {
     background-color: #1a1a1a;
     border-color: #303030;
+    color: #909090;
+  }
+  .markdown-body h1 {
+    border-bottom-color: #303030;
+  }
+  .markdown-body h2 {
+    border-bottom-color: #4338ca;
+    color: #a5b4fc;
+  }
+  .markdown-body h3 {
+    color: #f1f1f1;
+    background-color: rgba(99, 102, 241, 0.12);
+    border-left-color: #818cf8;
+  }
+  .markdown-body strong {
+    color: #a5b4fc;
+  }
+  .markdown-body blockquote {
+    background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  }
+  .markdown-body ul li::before {
+    background-color: #818cf8;
+  }
+  .markdown-body ul ul li::before {
+    background-color: #6366f1;
+  }
+  .markdown-body :not(pre) > code {
+    background-color: #312e81;
+    color: #c7d2fe;
+  }
+  .markdown-body pre {
+    background-color: #1a1a1a;
+    border-color: #303030;
+  }
+  .markdown-body pre code {
+    background: none;
+    color: inherit;
   }
 }

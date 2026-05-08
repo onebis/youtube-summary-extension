@@ -38,5 +38,8 @@
     }
   ],
   "permissions": ["storage", "activeTab", "scripting", "sidePanel"],
-  "host_permissions": ["https://www.youtube.com/*"]
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://api.anthropic.com/*"
+  ]
 }

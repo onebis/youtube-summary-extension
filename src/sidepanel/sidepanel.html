@@ -9,21 +9,42 @@
   <body>
     <header>
       <h1>YouTube Summary</h1>
+      <div class="mode-toggle" role="radiogroup" aria-label="要約の長さ">
+        <button
+          type="button"
+          class="mode-btn"
+          data-mode="short"
+          role="radio"
+          aria-checked="true"
+        >
+          短め
+        </button>
+        <button
+          type="button"
+          class="mode-btn"
+          data-mode="detailed"
+          role="radio"
+          aria-checked="false"
+        >
+          詳細
+        </button>
+      </div>
     </header>
     <main>
       <div id="empty-state">
         <p>YouTube動画ページの「Summarize」ボタンを押してください。</p>
       </div>
       <div id="loading" hidden>
-        <p>字幕を取得中...</p>
+        <div class="spinner" aria-hidden="true"></div>
+        <p id="loading-message">処理中...</p>
       </div>
       <div id="error" hidden>
         <p id="error-message"></p>
+        <p id="error-detail" class="error-detail" hidden></p>
       </div>
       <article id="result" hidden>
-        <h2 id="result-title">取得した字幕</h2>
         <p id="result-meta"></p>
-        <pre id="result-text"></pre>
+        <div id="summary-content" class="markdown-body"></div>
       </article>
     </main>
     <script type="module" src="./sidepanel.ts"></script>

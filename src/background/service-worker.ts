@@ -1,4 +1,14 @@
-import type { Message, PendingRequest, SubtitleResult } from '../types/messages';
+import type {
+  Message,
+  PendingRequest,
+  SubtitleResult,
+  SummaryResult,
+} from '../types/messages';
+import { loadSettings } from '../lib/storage';
+import { buildPrompt } from '../lib/prompt';
+import { LLMError } from '../lib/llm';
+import type { LLMClient } from '../lib/llm';
+import { ClaudeClient } from '../lib/llm/claude';
 
 let pending: PendingRequest | null = null;
 
@@ -13,7 +23,7 @@ chrome.sidePanel
   });
 
 type InPageResult =
-  | { ok: true; text: string; languageCode: string }
+  | { ok: true; text: string; languageCode: string; title: string; videoId: string }
   | {
       ok: false;
       code: 'NO_PLAYER_RESPONSE' | 'NO_SUBTITLE' | 'FETCH_FAILED';
@@ -28,7 +38,11 @@ const extractAndFetchInPage = async (): Promise<InPageResult> => {
           captionTracks?: Array<{ languageCode: string; kind?: string }>;
         };
       };
-      videoDetails?: { defaultAudioLanguage?: string };
+      videoDetails?: {
+        defaultAudioLanguage?: string;
+        title?: string;
+        videoId?: string;
+      };
     };
     ytInitialData?: unknown;
     ytcfg?: {
@@ -41,6 +55,11 @@ const extractAndFetchInPage = async (): Promise<InPageResult> => {
   if (!player) {
     return { ok: false, code: 'NO_PLAYER_RESPONSE' };
   }
+
+  const videoTitle =
+    player.videoDetails?.title ?? document.title.replace(/\s*-\s*YouTube\s*$/, '');
+  const videoId =
+    player.videoDetails?.videoId ?? new URLSearchParams(location.search).get('v') ?? '';
 
   const tracks = player.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
   if (tracks.length === 0) {
@@ -69,60 +88,84 @@ const extractAndFetchInPage = async (): Promise<InPageResult> => {
   };
 
   const extractText = (panel: HTMLElement): string => {
-    // Try specific element selectors first (older YouTube DOM)
-    const candidates = [
-      'ytd-transcript-segment-renderer',
-      'yt-transcript-segment-renderer',
-      'ytd-transcript-segment-list-renderer ytd-transcript-segment-renderer',
-    ];
-    for (const sel of candidates) {
-      const els = panel.querySelectorAll(sel);
-      if (els.length > 0) {
-        const txt = Array.from(els)
-          .map((el) => {
-            const seg = el.querySelector(
-              '.segment-text, yt-formatted-string.segment-text, [class*="segment-text"]',
-            );
-            return (seg?.textContent ?? el.textContent ?? '').replace(/\s+/g, ' ').trim();
-          })
-          .filter((t) => t.length > 0)
-          .join(' ');
-        if (txt) return txt;
-      }
-    }
-    // Fallback: take panel text and strip timestamps + search box label
     const bodyContainer =
       panel.querySelector<HTMLElement>('#body') ??
       panel.querySelector<HTMLElement>('ytd-transcript-renderer') ??
       panel.querySelector<HTMLElement>('ytd-transcript-search-panel-renderer') ??
       panel;
-    return (bodyContainer.textContent ?? '')
-      .replace(/\b\d{1,3}:\d{2}(?::\d{2})?\b/g, ' ')
-      .replace(/文字音声変換を検索|文字起こし|Search transcript|Transcript/gi, ' ')
-      .replace(/\s+/g, ' ')
+
+    // Try specific segment selectors first
+    const candidates = [
+      'ytd-transcript-segment-renderer',
+      'yt-transcript-segment-renderer',
+    ];
+    for (const sel of candidates) {
+      const els = bodyContainer.querySelectorAll(sel);
+      if (els.length > 0) {
+        const lines = Array.from(els)
+          .map((el) => {
+            const tsEl = el.querySelector('.segment-timestamp, [class*="timestamp"]');
+            const ts = (tsEl?.textContent ?? '').trim();
+            const txtEl = el.querySelector(
+              '.segment-text, yt-formatted-string.segment-text, [class*="segment-text"]',
+            );
+            const text = (txtEl?.textContent ?? '').replace(/\s+/g, ' ').trim();
+            if (text && ts) return `[${ts}] ${text}`;
+            if (text) return text;
+            const all = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+            if (!all) return '';
+            const m = all.match(/^(\d{1,3}:\d{2}(?::\d{2})?)\s*(.+)$/);
+            if (m) return `[${m[1]}] ${m[2]}`;
+            return all;
+          })
+          .filter((t) => t.length > 0);
+        if (lines.length > 0) return lines.join('\n');
+      }
+    }
+
+    // Fallback: use textContent (works regardless of visibility), regex-split timestamps
+    const raw = (bodyContainer.textContent ?? '').trim();
+    if (!raw) return '';
+
+    return raw
+      .replace(/文字音声変換を検索|文字起こし|Search transcript|Transcript/gi, '')
+      .replace(/(\d{1,3}:\d{2}(?::\d{2})?)\s*/g, '\n[$1] ')
+      .replace(/^\n+/, '')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n[ ]+/g, '\n')
+      .replace(/\n+/g, '\n')
       .trim();
   };
 
-  let panel = findPanel();
-  const wasAlreadyOpen = panel != null && isVisible(panel);
-  let hideStyle: HTMLStyleElement | null = null;
+  // Always apply hide style during the entire operation so the panel never flashes
+  // visible regardless of its previous state (including leftover from failed close).
+  const hideStyle = document.createElement('style');
+  hideStyle.textContent = `
+    ytd-engagement-panel-section-list-renderer[target-id*="transcript"] {
+      visibility: hidden !important;
+      position: fixed !important;
+      top: -10000px !important;
+      left: -10000px !important;
+      width: 400px !important;
+      height: 600px !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+    }
+  `;
+  document.head.appendChild(hideStyle);
+
+  const findCloseBtn = (root: HTMLElement): HTMLElement | null =>
+    root.querySelector<HTMLElement>('[aria-label="閉じる"]') ??
+    root.querySelector<HTMLElement>('[aria-label="Close"]') ??
+    root.querySelector<HTMLElement>('[aria-label*="close" i]') ??
+    root.querySelector<HTMLElement>('yt-icon-button#dismiss-button button') ??
+    root.querySelector<HTMLElement>('#dismiss-button');
 
   try {
-    if (!wasAlreadyOpen) {
-      hideStyle = document.createElement('style');
-      hideStyle.textContent = `
-        ytd-engagement-panel-section-list-renderer[target-id*="transcript"] {
-          visibility: hidden !important;
-          position: fixed !important;
-          top: -10000px !important;
-          left: -10000px !important;
-          width: 400px !important;
-          height: 600px !important;
-          pointer-events: none !important;
-        }
-      `;
-      document.head.appendChild(hideStyle);
+    let panel = findPanel();
+    const wasAlreadyOpen = panel != null && isVisible(panel);
 
+    if (!wasAlreadyOpen) {
       const buttons = Array.from(document.querySelectorAll('button, tp-yt-paper-button'));
       let transcriptBtn: HTMLElement | null = null;
       for (const b of buttons) {
@@ -158,7 +201,7 @@ const extractAndFetchInPage = async (): Promise<InPageResult> => {
       transcriptBtn.click();
     }
 
-    // Wait for panel to populate with content
+    // Wait for panel to populate with content (textContent works under hide style)
     const startTime = Date.now();
     let lastLen = 0;
     while (Date.now() - startTime < 8000) {
@@ -184,28 +227,81 @@ const extractAndFetchInPage = async (): Promise<InPageResult> => {
       };
     }
 
-    // Close the panel we opened, leaving panel state as before
-    if (!wasAlreadyOpen) {
-      const closeBtn = panel.querySelector<HTMLElement>(
-        'button[aria-label="Close"], button[aria-label="閉じる"], button[aria-label*="close" i], button#dismiss-button',
-      );
-      if (closeBtn) {
-        closeBtn.click();
-        await new Promise((r) => setTimeout(r, 400));
-      }
+    // Always attempt to close so leftovers are cleaned up. If user had it open and
+    // we close it, the trade-off is acceptable vs. having stale panels accumulate.
+    const closeBtn = findCloseBtn(panel);
+    if (closeBtn) {
+      closeBtn.click();
+      await new Promise((r) => setTimeout(r, 300));
     }
 
     return {
       ok: true,
       text,
       languageCode: bestTrack?.languageCode ?? 'unknown',
+      title: videoTitle,
+      videoId,
     };
   } finally {
-    if (hideStyle) hideStyle.remove();
+    hideStyle.remove();
   }
 };
 
-const runExtraction = async (tabId: number): Promise<SubtitleResult> => {
+const runSummarize = async (
+  subtitle: string,
+  mode: 'short' | 'detailed',
+  title: string,
+): Promise<SummaryResult> => {
+  const settings = await loadSettings();
+  const provider = settings.activeProvider;
+  const cred = settings.providers[provider];
+
+  if (!cred.apiKey) {
+    return { type: 'SUMMARY_ERROR', code: 'NO_API_KEY' };
+  }
+
+  let client: LLMClient;
+  if (provider === 'claude') {
+    client = new ClaudeClient();
+  } else {
+    return {
+      type: 'SUMMARY_ERROR',
+      code: 'OTHER',
+      message: `Provider not yet implemented: ${provider}`,
+    };
+  }
+
+  const prompt = buildPrompt(subtitle, mode, title);
+  try {
+    const result = await client.summarize({
+      prompt,
+      apiKey: cred.apiKey,
+      model: cred.model,
+    });
+    if (!result.text) {
+      return { type: 'SUMMARY_ERROR', code: 'OTHER', message: 'Empty response from LLM' };
+    }
+    return { type: 'SUMMARY_RESULT', markdown: result.text };
+  } catch (err) {
+    if (err instanceof LLMError) {
+      return {
+        type: 'SUMMARY_ERROR',
+        code: err.toUserCode(),
+        message: `HTTP ${err.status}: ${err.body.slice(0, 200)}`,
+      };
+    }
+    return {
+      type: 'SUMMARY_ERROR',
+      code: 'NETWORK',
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+};
+
+const runExtraction = async (
+  tabId: number,
+  expectedVideoId: string,
+): Promise<SubtitleResult> => {
   try {
     const [exec] = await chrome.scripting.executeScript({
       target: { tabId },
@@ -221,7 +317,19 @@ const runExtraction = async (tabId: number): Promise<SubtitleResult> => {
       };
     }
     if (r.ok) {
-      return { type: 'SUBTITLE_RESULT', text: r.text, languageCode: r.languageCode };
+      if (r.videoId && r.videoId !== expectedVideoId) {
+        return {
+          type: 'SUBTITLE_ERROR',
+          code: 'VIDEO_CHANGED',
+          message: `expected=${expectedVideoId}, actual=${r.videoId}`,
+        };
+      }
+      return {
+        type: 'SUBTITLE_RESULT',
+        text: r.text,
+        languageCode: r.languageCode,
+        title: r.title,
+      };
     }
     if (r.code === 'NO_SUBTITLE' || r.code === 'NO_PLAYER_RESPONSE') {
       return { type: 'SUBTITLE_ERROR', code: 'NO_SUBTITLE', message: r.detail };
@@ -253,11 +361,12 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
 
   if (msg.type === 'GET_PENDING_REQUEST') {
     sendResponse(pending);
+    pending = null;
     return false;
   }
 
   if (msg.type === 'EXTRACT_SUBTITLE') {
-    runExtraction(msg.tabId)
+    runExtraction(msg.tabId, msg.expectedVideoId)
       .then((result) => sendResponse(result))
       .catch((err: unknown) => {
         sendResponse({
@@ -265,6 +374,19 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
           code: 'EXTRACT_FAILED',
           message: err instanceof Error ? err.message : String(err),
         } satisfies SubtitleResult);
+      });
+    return true;
+  }
+
+  if (msg.type === 'SUMMARIZE') {
+    runSummarize(msg.subtitle, msg.mode, msg.title)
+      .then((result) => sendResponse(result))
+      .catch((err: unknown) => {
+        sendResponse({
+          type: 'SUMMARY_ERROR',
+          code: 'OTHER',
+          message: err instanceof Error ? err.message : String(err),
+        } satisfies SummaryResult);
       });
     return true;
   }

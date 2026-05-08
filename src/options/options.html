@@ -3,11 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Options</title>
+    <title>YouTube Summary - Options</title>
     <link rel="stylesheet" href="./options.css" />
   </head>
   <body>
-    <h1>Options</h1>
+    <h1>YouTube Summary - Options</h1>
+    <form id="form">
+      <fieldset>
+        <legend>Claude API</legend>
+        <label>
+          <span>API Key</span>
+          <input
+            type="password"
+            id="claude-key"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="sk-ant-..."
+          />
+        </label>
+        <label>
+          <span>Model</span>
+          <input type="text" id="claude-model" spellcheck="false" />
+        </label>
+        <p class="hint">
+          API キーは Anthropic Console から発行できます。キーはこの拡張機能のローカルストレージにのみ保存され、外部に送信されません（要約実行時を除く）。
+        </p>
+      </fieldset>
+      <div class="actions">
+        <button type="submit">保存</button>
+        <p id="status" aria-live="polite"></p>
+      </div>
+    </form>
     <script type="module" src="./options.ts"></script>
   </body>
 </html>
