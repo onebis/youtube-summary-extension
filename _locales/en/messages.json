@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "YouTube Summary"
+  },
+  "extensionDescription": {
+    "message": "Summarize YouTube videos with your own AI key (Claude / OpenAI / Gemini). Output in Japanese or English."
+  }
+}

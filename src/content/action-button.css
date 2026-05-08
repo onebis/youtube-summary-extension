@@ -1,0 +1,41 @@
+.yt-summary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  height: 36px;
+  border-radius: 18px;
+  border: none;
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #0f0f0f;
+  font: 500 14px / 36px "Roboto", "YouTube Sans", -apple-system, "Segoe UI", sans-serif;
+  cursor: pointer;
+  margin-left: 8px;
+  white-space: nowrap;
+  transition: background-color 0.1s;
+}
+
+.yt-summary-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.yt-summary-button:focus-visible {
+  outline: 2px solid #1c62b9;
+  outline-offset: 2px;
+}
+
+.yt-summary-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+html[dark] .yt-summary-button,
+[dark] .yt-summary-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f1f1f1;
+}
+
+html[dark] .yt-summary-button:hover,
+[dark] .yt-summary-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}

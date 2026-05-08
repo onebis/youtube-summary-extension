@@ -1,0 +1,25 @@
+{
+  "name": "youtube-summary",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "YouTube動画の字幕をAIで日本語/英語に要約するChrome拡張機能",
+  "scripts": {
+    "build:icons": "tsx scripts/build-icons.ts",
+    "predev": "npm run build:icons",
+    "prebuild": "npm run build:icons",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.0.0-beta.36",
+    "@types/chrome": "^0.0.330",
+    "@types/node": "^25.6.2",
+    "sharp": "^0.34.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.1.0"
+  }
+}

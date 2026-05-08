@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "YouTube動画要約"
+  },
+  "extensionDescription": {
+    "message": "YouTube動画の字幕をAIで日本語/英語に要約します（Claude / OpenAI / Gemini対応、BYOK方式）"
+  }
+}
