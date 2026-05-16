@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Summary — AI-powered summaries of YouTube videos</title>
+  <meta name="description" content="A Chrome extension that summarizes YouTube videos from captions, using your own AI API key (Claude, OpenAI, or Gemini). BYOK, privacy-first." />
+  <link rel="icon" type="image/png" href="./icon.png" />
+  <meta property="og:title" content="YouTube Summary" />
+  <meta property="og:description" content="A Chrome extension that summarizes YouTube videos from captions, using your own AI API key." />
+  <meta property="og:image" content="./icon.png" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-soft: #fafafa;
+      --bg-card: #ffffff;
+      --fg: #18181b;
+      --fg-muted: #52525b;
+      --fg-subtle: #a1a1aa;
+      --border: #e4e4e7;
+      --border-strong: #d4d4d8;
+      --accent: #dc2626;
+      --accent-soft: #fef2f2;
+      --radius: 12px;
+      --radius-lg: 20px;
+      --max-width: 1080px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Hiragino Sans", "Yu Gothic UI", Meiryo, Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0a0a;
+        --bg-soft: #111113;
+        --bg-card: #161618;
+        --fg: #fafafa;
+        --fg-muted: #a1a1aa;
+        --fg-subtle: #71717a;
+        --border: #27272a;
+        --border-strong: #3f3f46;
+        --accent: #ef4444;
+        --accent-soft: #1f0d0d;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    a { color: var(--accent); text-decoration: none; transition: opacity 0.15s; }
+    a:hover { opacity: 0.7; }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: saturate(180%) blur(12px);
+      -webkit-backdrop-filter: saturate(180%) blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    @media (prefers-color-scheme: dark) {
+      header { background: rgba(10, 10, 10, 0.8); }
+    }
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--fg);
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+    .brand img { width: 28px; height: 28px; }
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      font-size: 14px;
+    }
+    .nav-links a { color: var(--fg-muted); font-weight: 500; }
+    .nav-links a:hover { color: var(--fg); opacity: 1; }
+    @media (max-width: 640px) {
+      .nav-links { gap: 16px; }
+      .nav-links a:not(.gh) { display: none; }
+    }
+
+    .hero {
+      padding: 96px 0 80px;
+      text-align: center;
+    }
+    .hero img.hero-icon {
+      width: 128px;
+      height: 128px;
+      margin: 0 auto 32px;
+      display: block;
+      filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.08));
+    }
+    .hero h1 {
+      font-size: clamp(40px, 6vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      font-weight: 700;
+      margin: 0 0 20px;
+    }
+    .hero .tagline {
+      font-size: clamp(18px, 2.2vw, 22px);
+      color: var(--fg-muted);
+      max-width: 640px;
+      margin: 0 auto 40px;
+      line-height: 1.5;
+    }
+    .cta-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 15px;
+      transition: transform 0.1s, box-shadow 0.15s;
+      border: 1px solid transparent;
+    }
+    .btn:hover { opacity: 1; transform: translateY(-1px); }
+    .btn-primary {
+      background: var(--fg);
+      color: var(--bg);
+    }
+    .btn-primary:hover { box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12); }
+    .btn-secondary {
+      background: transparent;
+      color: var(--fg);
+      border-color: var(--border-strong);
+    }
+    .btn-secondary:hover { background: var(--bg-soft); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    section { padding: 80px 0; }
+    section h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      font-weight: 700;
+      margin: 0 0 16px;
+      text-align: center;
+    }
+    section .section-lead {
+      font-size: 17px;
+      color: var(--fg-muted);
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 56px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    .feature {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .feature:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .feature h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 8px;
+      letter-spacing: -0.01em;
+    }
+    .feature p {
+      font-size: 14px;
+      color: var(--fg-muted);
+      margin: 0;
+      line-height: 1.55;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      counter-reset: step;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .steps li {
+      counter-increment: step;
+      padding: 28px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--bg-card);
+      position: relative;
+    }
+    .steps li::before {
+      content: counter(step);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: var(--fg);
+      color: var(--bg);
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .steps li b {
+      display: block;
+      font-size: 16px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .steps li p {
+      color: var(--fg-muted);
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .privacy-callout {
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 56px 40px;
+      text-align: center;
+    }
+    .privacy-callout h2 { margin-top: 0; }
+    .privacy-points {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+      max-width: 800px;
+      margin: 32px auto 32px;
+      text-align: left;
+    }
+    .privacy-points li {
+      list-style: none;
+      padding-left: 28px;
+      position: relative;
+      font-size: 14px;
+      color: var(--fg-muted);
+    }
+    .privacy-points li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 6px;
+      width: 16px;
+      height: 16px;
+      background: var(--accent);
+      border-radius: 50%;
+      mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.5 8L7 11.5L13 5' stroke='white' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.5 8L7 11.5L13 5' stroke='white' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+    .privacy-links {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .providers {
+      text-align: center;
+    }
+    .provider-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 32px;
+    }
+    .provider {
+      padding: 12px 24px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--fg-muted);
+      background: var(--bg-card);
+    }
+    .provider b { color: var(--fg); font-weight: 600; }
+    .provider .model { font-family: var(--mono); font-size: 12px; opacity: 0.7; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      color: var(--fg-subtle);
+      font-size: 13px;
+    }
+    footer .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    footer a { color: var(--fg-muted); }
+    footer a:hover { color: var(--fg); }
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <a href="#" class="brand">
+          <img src="./icon.png" alt="" />
+          <span>YouTube Summary</span>
+        </a>
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#how">How it works</a>
+          <a href="#privacy">Privacy</a>
+          <a href="https://github.com/onebis/youtube-summary-extension" class="gh">GitHub</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <img src="./icon.png" alt="YouTube Summary icon" class="hero-icon" />
+        <h1>YouTube videos,<br />summarized.</h1>
+        <p class="tagline">A Chrome extension that turns video captions into structured summaries — using your own AI API key. No accounts, no tracking, no servers.</p>
+        <div class="cta-row">
+          <a href="https://github.com/onebis/youtube-summary-extension" class="btn btn-primary">View on GitHub</a>
+          <span class="badge">Coming to Chrome Web Store</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="container">
+        <h2>What it does</h2>
+        <p class="section-lead">Fast, structured AI summaries of any YouTube video that has captions.</p>
+        <div class="features-grid">
+          <div class="feature">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </div>
+            <h3>Structured output</h3>
+            <p>Headings, bullet points, and key takeaways — not just a wall of text.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <h3>Bilingual</h3>
+            <p>Generate summaries in Japanese or English, regardless of the video's language.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <h3>Side panel</h3>
+            <p>Read summaries next to the video without leaving the page.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h3>Three summary modes</h3>
+            <p>Short for a quick gist, Medium for context, Detailed when you need it all.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3>Your keys, your data</h3>
+            <p>API keys stay in your browser. No analytics, no telemetry, no servers in between.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            </div>
+            <h3>Copy, regenerate, cancel</h3>
+            <p>One-click copy, rerun the same input, or cancel a long request anytime.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how">
+      <div class="container">
+        <h2>How it works</h2>
+        <p class="section-lead">Set it up once and forget about it.</p>
+        <ol class="steps">
+          <li>
+            <b>Add your API key</b>
+            <p>Choose Claude, OpenAI, or Gemini in the options page and paste your API key. Stored only in your browser.</p>
+          </li>
+          <li>
+            <b>Open any YouTube video</b>
+            <p>The extension adds a Summarize button to the video page action bar.</p>
+          </li>
+          <li>
+            <b>Click Summarize</b>
+            <p>The Chrome side panel opens and the structured summary streams in.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="privacy">
+      <div class="container">
+        <div class="privacy-callout">
+          <h2>Your data stays yours</h2>
+          <p class="section-lead">BYOK (Bring Your Own Key) means there's no developer middleman.</p>
+          <ul class="privacy-points">
+            <li>No user accounts, no sign-up, no developer servers</li>
+            <li>API keys are stored only in your browser's local storage</li>
+            <li>Captions are sent only to the AI provider you select</li>
+            <li>No analytics, no telemetry, no third-party tracking</li>
+          </ul>
+          <div class="privacy-links">
+            <a href="./privacy.en.html">Privacy Policy (English)</a>
+            <span style="color: var(--border-strong)">·</span>
+            <a href="./privacy.html">プライバシーポリシー (日本語)</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="providers">
+      <div class="container">
+        <h2>Bring your own AI</h2>
+        <p class="section-lead">Pick the provider you already use. Models are configurable in the options page.</p>
+        <div class="provider-list">
+          <span class="provider"><b>Anthropic Claude</b> <span class="model">claude-sonnet-4-6</span></span>
+          <span class="provider"><b>OpenAI</b> <span class="model">gpt-4o</span></span>
+          <span class="provider"><b>Google Gemini</b> <span class="model">gemini-2.5-flash</span></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <span>&copy; 2026 Minoru Horiuchi</span>
+        <div class="footer-links">
+          <a href="https://github.com/onebis/youtube-summary-extension">Source</a>
+          <a href="./privacy.en.html">Privacy</a>
+          <a href="./privacy.html">日本語</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -73,4 +73,12 @@ await Promise.all(
   ),
 );
 
-console.log(`Generated ${sizes.length} icons at ${outDir}`);
+// Landing page (GitHub Pages) hero icon. Committed to git so GH Pages can serve it.
+await sharp(master.data, {
+  raw: { width: master.width, height: master.height, channels: 4 },
+})
+  .resize(256, 256, { kernel: 'lanczos3' })
+  .png({ compressionLevel: 9 })
+  .toFile(resolve(root, 'docs/icon.png'));
+
+console.log(`Generated ${sizes.length} icons at ${outDir} + docs/icon.png`);
