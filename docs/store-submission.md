@@ -19,7 +19,7 @@ This extension summarizes YouTube videos by fetching the captions and sending th
 
 ## Privacy Policy URLs
 
-After GitHub Pages is enabled for the `main` branch and `/docs` folder of the `onebis/youtube-summary-extension` repository:
+After GitHub Pages is enabled for the `main` branch and `/site` folder of the `onebis/youtube-summary-extension` repository:
 
 - Japanese: `https://onebis.github.io/youtube-summary-extension/privacy.html`
 - English: `https://onebis.github.io/youtube-summary-extension/privacy.en.html`
