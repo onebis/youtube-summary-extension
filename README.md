@@ -24,7 +24,7 @@ YouTube動画の字幕を取得し、ユーザー指定のAI API (Claude / OpenA
 
 - 開発者はユーザーデータを収集しません
 - 要約実行時のみ、字幕本文・動画ID・出力言語が、ユーザーが選択したAIプロバイダの公式APIへ送信されます
-- 詳細: [プライバシーポリシー (日本語)](./site/privacy.md) / [Privacy Policy (English)](./site/privacy.en.md)
+- 詳細: [プライバシーポリシー (日本語)](./docs/privacy.md) / [Privacy Policy (English)](./docs/privacy.en.md)
 
 ## 開発
 

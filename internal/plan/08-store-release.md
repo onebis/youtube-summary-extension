@@ -34,7 +34,7 @@ Chrome Web Store の審査要件を満たし、申請可能な状態に仕上げ
 
 ### 2. プライバシーポリシー
 
-`site/privacy.md` および `site/privacy.en.md` を新規作成（`site/` は GitHub Pages 専用フォルダ）。
+`docs/privacy.md` および `docs/privacy.en.md` を新規作成（`docs/` は GitHub Pages 専用、内部設計ドキュメントは `internal/` 配下に分離）。
 [`SPEC §7.2`](../../SPEC.md#72-必要な記載項目) の全項目を含める:
 
 - 拡張機能の単一目的
@@ -47,12 +47,12 @@ Chrome Web Store の審査要件を満たし、申請可能な状態に仕上げ
 - 連絡先メールアドレス
 
 GitHub Pages 公開:
-- リポジトリ Settings → Pages → Source: `main` branch / `/site` folder
+- リポジトリ Settings → Pages → Source: `main` branch / `/docs` folder
 - 公開URL（例: `https://<user>.github.io/youtube-summary/privacy.html`）を確認
 
 ### 3. ストア説明文
 
-`docs/store-listing-ja.md` と `docs/store-listing-en.md`:
+`internal/store-listing-ja.md` と `internal/store-listing-en.md`:
 
 #### 短い説明（132字以内）
 
@@ -74,7 +74,7 @@ Web Store は `1280x800` または `640x400` のPNG/JPGを最大5枚。
 4. 同じ要約の英語版
 5. オプションページ（プロバイダ選択画面）
 
-撮影後 `docs/screenshots/01.png` 〜 `05.png` に保存。
+撮影後 `internal/screenshots/01.png` 〜 `05.png` に保存。
 
 ### 5. 単一目的の明示
 
@@ -141,7 +141,7 @@ zip -r ../youtube-summary-v0.1.0.zip .
   3. host_permissions が広すぎる（`<all_urls>` 等は避ける）
   4. リモートコードロード（外部 JS の動的読み込み）→ 本拡張は該当しない
 - **APIキーレビュー対応**: 審査員はBYOKを確認するためにテストアカウント情報を要求することがある。Anthropic/OpenAI/Gemini いずれかの試験用キーを準備しておく
-- **GitHub Pagesの404**: 申請前に URL の到達性を確認。`site/privacy.md` の front matter で `permalink: /privacy.html` を指定済みなので Jekyll で展開される
+- **GitHub Pagesの404**: 申請前に URL の到達性を確認。`docs/privacy.md` の front matter で `permalink: /privacy.html` を指定済みなので Jekyll で展開される
 - **マスター画像のサイズ**: ZIPには不要なので `vite` の `publicDir` 構成と `.vscodeignore` 的な仕組みで除外
 
 ## 参考

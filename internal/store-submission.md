@@ -19,7 +19,7 @@ This extension summarizes YouTube videos by fetching the captions and sending th
 
 ## Privacy Policy URLs
 
-After GitHub Pages is enabled for the `main` branch and `/site` folder of the `onebis/youtube-summary-extension` repository:
+After GitHub Pages is enabled for the `main` branch and `/docs` folder of the `onebis/youtube-summary-extension` repository:
 
 - Japanese: `https://onebis.github.io/youtube-summary-extension/privacy.html`
 - English: `https://onebis.github.io/youtube-summary-extension/privacy.en.html`
@@ -41,7 +41,7 @@ Provide the reviewer with one temporary test API key separately if requested by 
 
 ## Screenshot Checklist
 
-Save Web Store screenshots as PNG or JPG under `docs/screenshots/`:
+Save Web Store screenshots as PNG or JPG under `internal/screenshots/`:
 
 1. `01.png`: YouTube video page with the Summarize button visible
 2. `02.png`: Side panel while loading
