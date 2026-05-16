@@ -6,6 +6,7 @@
   "description": "YouTube動画の字幕をAIで日本語/英語に要約するChrome拡張機能",
   "scripts": {
     "build:icons": "tsx scripts/build-icons.ts",
+    "build:screenshots": "tsx scripts/build-screenshots.ts",
     "predev": "npm run build:icons",
     "prebuild": "npm run build:icons",
     "dev": "vite",

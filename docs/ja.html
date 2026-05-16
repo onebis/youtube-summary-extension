@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>YouTube Summary — AI-powered summaries of YouTube videos</title>
-  <meta name="description" content="A Chrome extension that summarizes YouTube videos from captions, using your own AI API key (Claude, OpenAI, or Gemini). BYOK, privacy-first." />
+  <title>YouTube Summary — AI で YouTube 動画を要約する Chrome 拡張機能</title>
+  <meta name="description" content="字幕から AI で構造化された要約を生成する Chrome 拡張機能。Claude / OpenAI / Gemini に対応する BYOK 方式。プライバシー重視。" />
   <link rel="icon" type="image/png" href="./icon.png" />
   <link rel="alternate" hreflang="en" href="./" />
   <link rel="alternate" hreflang="ja" href="./ja.html" />
   <link rel="alternate" hreflang="x-default" href="./" />
   <meta property="og:title" content="YouTube Summary" />
-  <meta property="og:description" content="A Chrome extension that summarizes YouTube videos from captions, using your own AI API key." />
+  <meta property="og:description" content="字幕から AI で構造化された要約を生成する Chrome 拡張機能。BYOK 方式。" />
   <meta property="og:image" content="./icon.png" />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary" />
@@ -53,7 +53,7 @@
       font-family: var(--font);
       background: var(--bg);
       color: var(--fg);
-      line-height: 1.6;
+      line-height: 1.7;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
@@ -95,6 +95,7 @@
     .brand img { width: 28px; height: 28px; }
     .nav-links {
       display: flex;
+      align-items: center;
       gap: 28px;
       font-size: 14px;
     }
@@ -137,18 +138,18 @@
       filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.08));
     }
     .hero h1 {
-      font-size: clamp(40px, 6vw, 64px);
-      line-height: 1.05;
-      letter-spacing: -0.03em;
+      font-size: clamp(36px, 5.5vw, 56px);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
       font-weight: 700;
       margin: 0 0 20px;
     }
     .hero .tagline {
-      font-size: clamp(18px, 2.2vw, 22px);
+      font-size: clamp(16px, 2vw, 19px);
       color: var(--fg-muted);
-      max-width: 640px;
+      max-width: 680px;
       margin: 0 auto 40px;
-      line-height: 1.5;
+      line-height: 1.75;
     }
     .cta-row {
       display: flex;
@@ -271,18 +272,18 @@
 
     section { padding: 80px 0; }
     section h2 {
-      font-size: clamp(28px, 4vw, 40px);
-      line-height: 1.15;
-      letter-spacing: -0.02em;
+      font-size: clamp(26px, 3.6vw, 36px);
+      line-height: 1.3;
+      letter-spacing: -0.01em;
       font-weight: 700;
       margin: 0 0 16px;
       text-align: center;
     }
     section .section-lead {
-      font-size: 17px;
+      font-size: 16px;
       color: var(--fg-muted);
       text-align: center;
-      max-width: 600px;
+      max-width: 640px;
       margin: 0 auto 56px;
     }
 
@@ -323,7 +324,7 @@
       font-size: 14px;
       color: var(--fg-muted);
       margin: 0;
-      line-height: 1.55;
+      line-height: 1.7;
     }
 
     .steps {
@@ -367,6 +368,7 @@
       color: var(--fg-muted);
       font-size: 14px;
       margin: 0;
+      line-height: 1.7;
     }
 
     .privacy-callout {
@@ -379,11 +381,12 @@
     .privacy-callout h2 { margin-top: 0; }
     .privacy-points {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 24px;
       max-width: 800px;
       margin: 32px auto 32px;
       text-align: left;
+      padding: 0;
     }
     .privacy-points li {
       list-style: none;
@@ -391,6 +394,7 @@
       position: relative;
       font-size: 14px;
       color: var(--fg-muted);
+      line-height: 1.7;
     }
     .privacy-points li::before {
       content: "";
@@ -409,6 +413,7 @@
       gap: 24px;
       justify-content: center;
       font-size: 14px;
+      flex-wrap: wrap;
     }
 
     .providers {
@@ -463,14 +468,14 @@
           <span>YouTube Summary</span>
         </a>
         <div class="nav-links">
-          <a href="#features">Features</a>
-          <a href="#how">How it works</a>
-          <a href="#privacy">Privacy</a>
+          <a href="#features">特徴</a>
+          <a href="#how">使い方</a>
+          <a href="#privacy">プライバシー</a>
           <a href="https://github.com/onebis/youtube-summary-extension" class="gh">GitHub</a>
           <div class="lang-switch">
-            <a href="./" aria-current="page">EN</a>
+            <a href="./">EN</a>
             <span>·</span>
-            <a href="./ja.html">日本語</a>
+            <a href="./ja.html" aria-current="page">日本語</a>
           </div>
         </div>
       </nav>
@@ -480,17 +485,17 @@
   <main>
     <section class="hero">
       <div class="container">
-        <img src="./icon.png" alt="YouTube Summary icon" class="hero-icon" />
-        <h1>YouTube videos,<br />summarized.</h1>
-        <p class="tagline">A Chrome extension that turns video captions into structured summaries — using your own AI API key. No accounts, no tracking, no servers.</p>
+        <img src="./icon.png" alt="YouTube Summary アイコン" class="hero-icon" />
+        <h1>YouTube動画を、<br />AI で要約。</h1>
+        <p class="tagline">字幕から構造化された要約を生成する Chrome 拡張機能。あなた自身の AI API キーを使う BYOK 方式。アカウント不要、トラッキングなし、開発者サーバーを経由しません。</p>
         <div class="cta-row">
-          <a href="https://github.com/onebis/youtube-summary-extension" class="btn btn-primary">View on GitHub</a>
-          <span class="badge">Coming to Chrome Web Store</span>
+          <a href="https://github.com/onebis/youtube-summary-extension" class="btn btn-primary">GitHub で見る</a>
+          <span class="badge">Chrome Web Store 公開準備中</span>
         </div>
       </div>
       <div class="product-shot">
         <figure>
-          <img src="./screenshots/01-hero.webp" alt="YouTube video page with the Summarize button added by the extension" width="1600" height="821" />
+          <img src="./screenshots/01-hero.webp" alt="YouTube 動画ページに拡張機能が追加した Summarize ボタン" width="1600" height="821" />
           <div class="annotation" style="left: 55.5%; top: 97%;">
             <div class="annotation-ring"></div>
             <div class="annotation-label">Summarize</div>
@@ -501,50 +506,50 @@
 
     <section id="features">
       <div class="container">
-        <h2>What it does</h2>
-        <p class="section-lead">Fast, structured AI summaries of any YouTube video that has captions.</p>
+        <h2>できること</h2>
+        <p class="section-lead">字幕がある YouTube 動画なら、すべて構造化された AI 要約に。</p>
         <div class="features-grid">
           <div class="feature">
             <div class="feature-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
             </div>
-            <h3>Structured output</h3>
-            <p>Headings, bullet points, and key takeaways — not just a wall of text.</p>
+            <h3>構造化された出力</h3>
+            <p>見出しと箇条書きで整理された要約。読みにくい文章の壁ではありません。</p>
           </div>
           <div class="feature">
             <div class="feature-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             </div>
-            <h3>Bilingual</h3>
-            <p>Generate summaries in Japanese or English, regardless of the video's language.</p>
+            <h3>日英バイリンガル</h3>
+            <p>動画の言語に関わらず、日本語または英語で要約を生成できます。</p>
           </div>
           <div class="feature">
             <div class="feature-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </div>
-            <h3>Side panel</h3>
-            <p>Read summaries next to the video without leaving the page.</p>
+            <h3>サイドパネル表示</h3>
+            <p>ページを離れず、動画の横で要約を読めます。</p>
           </div>
           <div class="feature">
             <div class="feature-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <h3>Three summary modes</h3>
-            <p>Short for a quick gist, Medium for context, Detailed when you need it all.</p>
+            <h3>3 つの要約モード</h3>
+            <p>ざっくり知りたい時の Short、文脈も追いたい時の Medium、全部知りたい時の Detailed。</p>
           </div>
           <div class="feature">
             <div class="feature-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </div>
-            <h3>Your keys, your data</h3>
-            <p>API keys stay in your browser. No analytics, no telemetry, no servers in between.</p>
+            <h3>キーもデータもあなたのもの</h3>
+            <p>API キーはブラウザ内に保存されるのみ。分析・テレメトリ・中継サーバーは一切なし。</p>
           </div>
           <div class="feature">
             <div class="feature-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
             </div>
-            <h3>Copy, regenerate, cancel</h3>
-            <p>One-click copy, rerun the same input, or cancel a long request anytime.</p>
+            <h3>コピー・再生成・中止</h3>
+            <p>ワンクリックでコピー、同じ入力で再実行、長いリクエストはいつでも中止可能。</p>
           </div>
         </div>
       </div>
@@ -552,32 +557,32 @@
 
     <section id="output">
       <div class="container">
-        <h2>See it in action</h2>
-        <p class="section-lead">A structured summary in the Chrome side panel — alongside the video, not in another tab.</p>
+        <h2>実際の動作画面</h2>
+        <p class="section-lead">構造化された要約が Chrome のサイドパネルに表示されます。別タブを開かず、動画の横で読めます。</p>
       </div>
       <div class="product-shot">
         <figure>
-          <img src="./screenshots/02-side-en.webp" alt="Chrome side panel showing an English AI-generated summary next to a YouTube video" width="1600" height="825" />
+          <img src="./screenshots/02-side-ja.webp" alt="YouTube 動画の横にサイドパネルで日本語の要約が表示されている画面" width="1600" height="818" />
         </figure>
       </div>
     </section>
 
     <section id="how">
       <div class="container">
-        <h2>How it works</h2>
-        <p class="section-lead">Set it up once and forget about it.</p>
+        <h2>使い方</h2>
+        <p class="section-lead">一度設定したら、あとは押すだけ。</p>
         <ol class="steps">
           <li>
-            <b>Add your API key</b>
-            <p>Choose Claude, OpenAI, or Gemini in the options page and paste your API key. Stored only in your browser.</p>
+            <b>API キーを設定</b>
+            <p>オプション画面で Claude / OpenAI / Gemini を選び、API キーを貼り付けます。ブラウザにのみ保存されます。</p>
           </li>
           <li>
-            <b>Open any YouTube video</b>
-            <p>The extension adds a Summarize button to the video page action bar.</p>
+            <b>YouTube 動画を開く</b>
+            <p>動画ページのアクションバー (高評価などの並び) に Summarize ボタンが追加されます。</p>
           </li>
           <li>
-            <b>Click Summarize</b>
-            <p>The Chrome side panel opens and the structured summary streams in.</p>
+            <b>Summarize をクリック</b>
+            <p>Chrome のサイドパネルが開き、構造化された要約が表示されます。</p>
           </li>
         </ol>
       </div>
@@ -586,18 +591,18 @@
     <section id="privacy">
       <div class="container">
         <div class="privacy-callout">
-          <h2>Your data stays yours</h2>
-          <p class="section-lead">BYOK (Bring Your Own Key) means there's no developer middleman.</p>
+          <h2>データは、あなたのもの</h2>
+          <p class="section-lead">BYOK (Bring Your Own Key) 方式のため、開発者を一切経由しません。</p>
           <ul class="privacy-points">
-            <li>No user accounts, no sign-up, no developer servers</li>
-            <li>API keys are stored only in your browser's local storage</li>
-            <li>Captions are sent only to the AI provider you select</li>
-            <li>No analytics, no telemetry, no third-party tracking</li>
+            <li>ユーザー登録不要、開発者のサーバーを経由しません</li>
+            <li>API キーはブラウザのローカルストレージにのみ保存</li>
+            <li>字幕は、あなたが選択した AI プロバイダにのみ送信</li>
+            <li>分析・テレメトリ・サードパーティトラッキングは一切なし</li>
           </ul>
           <div class="privacy-links">
-            <a href="./privacy.en.html">Privacy Policy (English)</a>
-            <span style="color: var(--border-strong)">·</span>
             <a href="./privacy.html">プライバシーポリシー (日本語)</a>
+            <span style="color: var(--border-strong)">·</span>
+            <a href="./privacy.en.html">Privacy Policy (English)</a>
           </div>
         </div>
       </div>
@@ -605,8 +610,8 @@
 
     <section class="providers">
       <div class="container">
-        <h2>Bring your own AI</h2>
-        <p class="section-lead">Pick the provider you already use. Models are configurable in the options page.</p>
+        <h2>好きな AI を選べる</h2>
+        <p class="section-lead">普段使っているプロバイダを選択可能。モデルはオプション画面から自由に変更できます。</p>
         <div class="provider-list">
           <span class="provider"><b>Anthropic Claude</b> <span class="model">claude-sonnet-4-6</span></span>
           <span class="provider"><b>OpenAI</b> <span class="model">gpt-4o</span></span>
@@ -621,9 +626,9 @@
       <div class="footer-inner">
         <span>&copy; 2026 Minoru Horiuchi</span>
         <div class="footer-links">
-          <a href="https://github.com/onebis/youtube-summary-extension">Source</a>
-          <a href="./privacy.en.html">Privacy</a>
-          <a href="./privacy.html">日本語</a>
+          <a href="https://github.com/onebis/youtube-summary-extension">ソースコード</a>
+          <a href="./privacy.html">プライバシー</a>
+          <a href="./">English</a>
         </div>
       </div>
     </div>
