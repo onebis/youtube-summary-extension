@@ -270,6 +270,139 @@
       .annotation-label { font-size: 11px; padding: 4px 8px; }
     }
 
+    .callout-arrow {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .callout-label {
+      position: absolute;
+      z-index: 3;
+      pointer-events: none;
+      background: var(--accent);
+      color: #ffffff;
+      padding: 14px 18px;
+      border-radius: 14px;
+      box-shadow: 0 14px 40px rgba(220, 38, 38, 0.4), 0 0 0 4px rgba(220, 38, 38, 0.12);
+      text-align: left;
+      max-width: 280px;
+      font-family: var(--font);
+    }
+    .callout-label strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 4px;
+    }
+    .callout-label span {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0.95;
+      line-height: 1.6;
+    }
+    .callout-marker {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      color: #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 0 0 4px var(--bg-card), 0 6px 18px rgba(220, 38, 38, 0.5);
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      pointer-events: none;
+      animation: marker-pulse 2.4s ease-out infinite;
+    }
+    @keyframes marker-pulse {
+      0% { box-shadow: 0 0 0 4px var(--bg-card), 0 0 0 4px rgba(220, 38, 38, 0.55), 0 6px 18px rgba(220, 38, 38, 0.45); }
+      100% { box-shadow: 0 0 0 4px var(--bg-card), 0 0 0 20px rgba(220, 38, 38, 0), 0 6px 18px rgba(220, 38, 38, 0.45); }
+    }
+    @media (max-width: 640px) {
+      .callout-marker { width: 26px; height: 26px; font-size: 12px; }
+      .callout-arrow,
+      .callout-label { display: none; }
+    }
+    .callout-legend {
+      max-width: 960px;
+      margin: 28px auto 0;
+      padding: 0 24px;
+    }
+    .callout-legend ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+    }
+    .callout-legend li {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      font-size: 14px;
+      color: var(--fg-muted);
+      line-height: 1.7;
+    }
+    .callout-legend li .num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      color: #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .callout-legend li strong {
+      color: var(--fg);
+      font-weight: 600;
+      font-size: 15px;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .output-layout {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 40px;
+      align-items: center;
+    }
+    .output-layout .product-shot,
+    .output-layout .callout-legend {
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
+    .output-layout .callout-legend ol {
+      grid-template-columns: 1fr;
+      gap: 22px;
+    }
+    @media (max-width: 900px) {
+      .output-layout {
+        grid-template-columns: 1fr;
+        gap: 28px;
+      }
+      .output-layout .callout-legend ol {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 18px;
+      }
+    }
+
     section { padding: 80px 0; }
     section h2 {
       font-size: clamp(26px, 3.6vw, 36px);
@@ -498,7 +631,21 @@
           <img src="./screenshots/01-hero.webp" alt="YouTube 動画ページに拡張機能が追加した Summarize ボタン" width="1600" height="821" />
           <div class="annotation" style="left: 55.5%; top: 97%;">
             <div class="annotation-ring"></div>
-            <div class="annotation-label">Summarize</div>
+          </div>
+          <svg class="callout-arrow" viewBox="0 0 1600 821" aria-hidden="true">
+            <defs>
+              <marker id="hero-arrowhead" viewBox="0 0 14 14" refX="11" refY="7" markerWidth="9" markerHeight="9" orient="auto">
+                <path d="M 0 0 L 14 7 L 0 14 z" fill="#dc2626" />
+              </marker>
+            </defs>
+            <path d="M 1290 590 Q 1140 700, 940 778"
+                  stroke="#dc2626" stroke-width="5" stroke-linecap="round"
+                  stroke-dasharray="12 8" fill="none"
+                  marker-end="url(#hero-arrowhead)" />
+          </svg>
+          <div class="callout-label" style="right: 4%; top: 56%;">
+            <strong>ワンクリックで完了</strong>
+            <span>拡張機能が YouTube 動画ページに Summarize ボタンを追加。押すだけで AI 要約がサイドパネルに表示されます。</span>
           </div>
         </figure>
       </div>
@@ -560,10 +707,31 @@
         <h2>実際の動作画面</h2>
         <p class="section-lead">構造化された要約が Chrome のサイドパネルに表示されます。別タブを開かず、動画の横で読めます。</p>
       </div>
-      <div class="product-shot">
-        <figure>
-          <img src="./screenshots/02-side-ja.webp" alt="YouTube 動画の横にサイドパネルで日本語の要約が表示されている画面" width="1600" height="818" />
-        </figure>
+      <div class="output-layout">
+        <div class="product-shot">
+          <figure>
+            <img src="./screenshots/02-side-ja.webp" alt="YouTube 動画の横にサイドパネルで日本語の要約が表示されている画面" width="1600" height="818" />
+            <div class="callout-marker" style="left: 85%; top: 5%;">1</div>
+            <div class="callout-marker" style="left: 90%; top: 5%;">2</div>
+            <div class="callout-marker" style="left: 85%; top: 24%;">3</div>
+          </figure>
+        </div>
+        <div class="callout-legend">
+          <ol>
+            <li>
+              <span class="num">1</span>
+              <span><strong>日英バイリンガル</strong>要約の出力言語を日本語と英語でワンタップ切替。</span>
+            </li>
+            <li>
+              <span class="num">2</span>
+              <span><strong>3 つの要約モード</strong>Short (ざっくり) / Medium (標準) / Detailed (詳細) を切り替え。</span>
+            </li>
+            <li>
+              <span class="num">3</span>
+              <span><strong>構造化された出力</strong>カテゴリタグ・見出し・箇条書きで整理。文章の壁にはなりません。</span>
+            </li>
+          </ol>
+        </div>
       </div>
     </section>
 

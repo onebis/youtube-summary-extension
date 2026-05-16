@@ -3,7 +3,7 @@
   "extensionDescription": { "message": "YouTube動画の字幕をAIで日本語/英語に要約します（Claude / OpenAI / Gemini対応、BYOK方式）" },
   "summarizeButton": { "message": "Summarize" },
   "appTitle": { "message": "YouTube動画要約" },
-  "modeShort": { "message": "短め" },
+  "modeShort": { "message": "ざっくり" },
   "modeMedium": { "message": "中間" },
   "modeDetailed": { "message": "詳細" },
   "outputLangJa": { "message": "日本語" },
