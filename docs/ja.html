@@ -181,29 +181,6 @@
       border-color: var(--border-strong);
     }
     .btn-secondary:hover { background: var(--bg-soft); }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      background: var(--accent-soft);
-      color: var(--accent);
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 600;
-    }
-    .badge::before {
-      content: "";
-      width: 6px;
-      height: 6px;
-      background: var(--accent);
-      border-radius: 50%;
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
 
     .product-shot {
       max-width: 1200px;
@@ -622,8 +599,8 @@
         <h1>YouTube動画を、<br />AI で要約。</h1>
         <p class="tagline">字幕から構造化された要約を生成する Chrome 拡張機能。あなた自身の AI API キーを使う BYOK 方式。アカウント不要、トラッキングなし、開発者サーバーを経由しません。</p>
         <div class="cta-row">
-          <a href="https://github.com/onebis/youtube-summary-extension" class="btn btn-primary">GitHub で見る</a>
-          <span class="badge">Chrome Web Store 公開準備中</span>
+          <a href="https://chromewebstore.google.com/detail/youtube-summary/fcdhcpnilhceegpdefdpeklhlgmcadhd" class="btn btn-primary">Chrome に追加</a>
+          <a href="https://github.com/onebis/youtube-summary-extension" class="btn btn-secondary">GitHub で見る</a>
         </div>
       </div>
       <div class="product-shot">

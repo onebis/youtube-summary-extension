@@ -1,7 +1,7 @@
 {
   "name": "youtube-summary",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "YouTube動画の字幕をAIで日本語/英語に要約するChrome拡張機能",
   "scripts": {
